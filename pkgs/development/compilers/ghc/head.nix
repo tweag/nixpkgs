@@ -3,7 +3,7 @@
 # build-tools
 , bootPkgs
 , autoconf, autoreconfHook, automake, coreutils, fetchgit, perl, python3, m4, sphinx
-, bash
+, bash, glibcLocales
 
 , libiconv ? null, ncurses
 
@@ -38,7 +38,7 @@
 , # Whether to build terminfo.
   enableTerminfo ? !stdenv.targetPlatform.isWindows
 
-, version ? "8.11.20200824"
+, version ? "9.1.20201001"
 , # What flavour to build. An empty string indicates no
   # specific flavour and falls back to ghc default values.
   ghcFlavour ? stdenv.lib.optionalString (stdenv.targetPlatform != stdenv.hostPlatform)
@@ -110,8 +110,8 @@ stdenv.mkDerivation (rec {
 
   src = fetchgit {
     url = "https://gitlab.haskell.org/ghc/ghc.git/";
-    rev = "3f50154591ada9064351ccec4adfe6df53ca2439";
-    sha256 = "1w2p5bc74aswspzvgvrhcb95hvj5ky38rgqqjvrri19z2qyiky6d";
+    rev = "5c32655fffd0d8862f3ba693351f1e612daa0b6b";
+    sha256 = "sha256-3LlDJodcBXpu1F9DCzIvR67GkiF3OZNLefzaI2A/V3k=";
   };
 
   enableParallelBuilding = true;
@@ -138,6 +138,9 @@ stdenv.mkDerivation (rec {
     export RANLIB="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}ranlib"
     export READELF="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}readelf"
     export STRIP="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}strip"
+
+    export LANG="en_US.UTF-8";
+    export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
 
     echo -n "${buildMK dontStrip}" > mk/build.mk
     echo ${version} > VERSION
