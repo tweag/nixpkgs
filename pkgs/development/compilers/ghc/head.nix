@@ -140,8 +140,9 @@ stdenv.mkDerivation (rec {
     export STRIP="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}strip"
 
     export LANG="en_US.UTF-8";
-    export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
-
+    '' + stdenv.lib.optionalString (glibcLocales != null) ''
+        export LOCALE_ARCHIVE=${glibcLocales}/lib/locale/locale-archive
+    '' + ''
     echo -n "${buildMK dontStrip}" > mk/build.mk
     echo ${version} > VERSION
     echo ${src.rev} > GIT_COMMIT_ID
