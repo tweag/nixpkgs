@@ -111,15 +111,10 @@ in {
       llvmPackages = pkgs.llvmPackages_10;
     };
     ghcHEAD = callPackage ../development/compilers/ghc/head.nix {
-      bootPkgs = packages.ghc883.override { # no binary yet
-        overrides = self: _: {
-          happy = self.happy_1_20_0;
-        };
-      };
+      bootPkgs = packages.ghc8102Binary;
       inherit (buildPackages.python3Packages) sphinx;
       buildLlvmPackages = buildPackages.llvmPackages_10;
       llvmPackages = pkgs.llvmPackages_10;
-      libffi = pkgs.libffi;
     };
     ghcjs = compiler.ghcjs86;
     ghcjs86 = callPackage ../development/compilers/ghcjs-ng {
