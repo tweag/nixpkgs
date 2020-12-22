@@ -255,7 +255,7 @@ stdenv.mkDerivation {
 
     # Ensure consistent LC_VERSION_MIN_MACOSX and remove LC_UUID.
     + optionalString stdenv.targetPlatform.isMacOS ''
-      echo "-sdk_version 10.12 -no_uuid" >> $out/nix-support/libc-ldflags-before
+      echo "-macosx_version_min 10.12 -sdk_version 10.12 -no_uuid" >> $out/nix-support/libc-ldflags-before
     ''
 
     ##
