@@ -16,3 +16,4 @@ jobs:
           owner: NixOS
           head: nixpkgs-unstable
           base: everything-ca
+          auto_approve: false
