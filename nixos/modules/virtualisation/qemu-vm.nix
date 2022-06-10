@@ -232,12 +232,14 @@ let
           # Create a /boot EFI partition with 60M and arbitrary but fixed GUIDs for reproducibility
           ${pkgs.gptfdisk}/bin/sgdisk \
             --set-alignment=1 --new=1:34:2047 --change-name=1:BIOSBootPartition --typecode=1:ef02 \
-            --set-alignment=512 --largest-new=2 --change-name=2:EFISystem --typecode=2:ef00 \
+            --set-alignment=512 --new=2:2048:+25M --change-name=2:EFISystem --typecode=2:ef00 \
+            --set-alignment=512 --largest-new=3 --change-name=3:EFIBoot --typecode=3:BC13C2FF-59E6-4262-A352-B275FD6F7172 \
             --attributes=1:set:1 \
             --attributes=2:set:2 \
             --disk-guid=97FD5997-D90B-4AA3-8D16-C1723AEA73C1 \
             --partition-guid=1:1C06F03B-704E-4657-B9CD-681A087A2FDC \
             --partition-guid=2:970C694F-AFD0-4B99-B750-CDB7A329AB6F \
+            --partition-guid=3:499A3514-D37D-424C-A976-F6C20D5BC30B \
             --hybrid 2 \
             --recompute-chs /dev/vda
 
@@ -257,6 +259,11 @@ let
           export MTOOLS_SKIP_CHECK=1
           ${pkgs.mtools}/bin/mlabel -i /dev/vda2 ::boot
 
+          ${pkgs.dosfstools}/bin/mkfs.fat -F16 /dev/vda3
+          export MTOOLS_SKIP_CHECK=1
+          ${pkgs.mtools}/bin/mlabel -i /dev/vda3 ::realboot
+          #${pkgs.e2fsprogs}/bin/mkfs.ext4 -U 688B1749-C2AC-4974-A455-E92455687699 -L realboot /dev/vda3
+
           # Mount /boot; load necessary modules first.
           ${pkgs.kmod}/bin/insmod ${pkgs.linux}/lib/modules/*/kernel/fs/nls/nls_cp437.ko.xz || true
           ${pkgs.kmod}/bin/insmod ${pkgs.linux}/lib/modules/*/kernel/fs/nls/nls_iso8859-1.ko.xz || true
@@ -264,7 +271,9 @@ let
           ${pkgs.kmod}/bin/insmod ${pkgs.linux}/lib/modules/*/kernel/fs/fat/vfat.ko.xz || true
           ${pkgs.kmod}/bin/insmod ${pkgs.linux}/lib/modules/*/kernel/fs/efivarfs/efivarfs.ko.xz || true
           mkdir /boot
-          mount /dev/vda2 /boot
+          mount /dev/vda3 /boot
+          mkdir /efi
+          mount /dev/vda2 /efi
 
           ${optionalString config.boot.loader.efi.canTouchEfiVariables ''
             mount -t efivarfs efivarfs /sys/firmware/efi/efivars
@@ -277,6 +286,7 @@ let
           # This is needed for systemd-boot to find ESP, and udev is not available here to create this
           mkdir -p /dev/block
           ln -s /dev/vda2 /dev/block/254:2
+          ln -s /dev/vda3 /dev/block/254:3
 
           # Set up system profile (normally done by nixos-rebuild / nix-env --set)
           mkdir -p /nix/var/nix/profiles
@@ -288,6 +298,7 @@ let
           export NIXOS_INSTALL_BOOTLOADER=1
           ${config.system.build.toplevel}/bin/switch-to-configuration boot
 
+          umount /efi
           umount /boot
         '' # */
     );
@@ -1074,10 +1085,18 @@ in
         optionalAttrs cfg.useBootLoader {
           # see note [Disk layout with `useBootLoader`]
           "/boot" = {
-            device = "${lookupDriveDeviceName "boot" cfg.qemu.drives}2"; # 2 for e.g. `vdb2`, as created in `bootDisk`
+            device = "${lookupDriveDeviceName "boot" cfg.qemu.drives}3"; # 2 for e.g. `vdb2`, as created in `bootDisk`
             fsType = "vfat";
             noCheck = true; # fsck fails on a r/o filesystem
           };
+
+          "/efi" =
+            # see note [Disk layout with `useBootLoader`]
+            {
+              device = "${lookupDriveDeviceName "boot" cfg.qemu.drives}2"; # 2 for e.g. `vdb2`, as created in `bootDisk`
+              fsType = "vfat";
+              noCheck = true; # fsck fails on a r/o filesystem
+            };
         } // lib.mapAttrs' mkSharedDir cfg.sharedDirectories);
 
     boot.initrd.systemd = lib.mkIf (config.boot.initrd.systemd.enable && cfg.writableStore) {
