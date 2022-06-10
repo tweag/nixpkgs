@@ -28,6 +28,8 @@ let
 
     inherit (efi) efiSysMountPoint canTouchEfiVariables;
 
+    inherit (cfg) bootPath;
+
     memtest86 = if cfg.memtest86.enable then pkgs.memtest86-efi else "";
 
     netbootxyz = if cfg.netbootxyz.enable then pkgs.netbootxyz-efi else "";
@@ -86,6 +88,17 @@ in
         gaining root access by passing init=/bin/sh as a kernel
         parameter. However, it is enabled by default for backwards
         compatibility.
+      '';
+    };
+
+    bootPath = mkOption {
+      example = "/boot";
+      default = "/boot";
+      type = types.str;
+      description = ''
+        ( UPDATE this )
+        ( The path to the boot directory where systemd-boot will be written. Generally )
+        ( this boot path should double as an EFI path. )
       '';
     };
 
