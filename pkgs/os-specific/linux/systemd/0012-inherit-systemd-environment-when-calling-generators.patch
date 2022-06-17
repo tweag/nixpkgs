@@ -1,7 +1,7 @@
-From 85f0ad0cb7b4f0cfd482c9611f9cbc2dacbba33a Mon Sep 17 00:00:00 2001
-From: Andreas Rammhold <andreas@rammhold.de>
-Date: Fri, 2 Nov 2018 21:15:42 +0100
-Subject: [PATCH 12/19] inherit systemd environment when calling generators.
+From 931420f807389a3bb1a73062e3637875a4d60a45 Mon Sep 17 00:00:00 2001
+From: Yuriy Taraday <yorik.sar@gmail.com>
+Date: Fri, 17 Jun 2022 12:45:10 +0000
+Subject: [PATCH 12/18] inherit systemd environment when calling generators.
 
 Systemd generators need access to the environment configured in
 stage-2-init.sh since it schedules fsck and mkfs executions based on
@@ -12,33 +12,31 @@ tries to gather environments with that they call
 "environment-generators" and then seems to pass that on to all the other
 executables that are being called from managers.
 ---
- src/core/manager.c | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ src/core/manager.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
 diff --git a/src/core/manager.c b/src/core/manager.c
-index 5b0bdb1bc7..1538a5200a 100644
+index 71ef7f27b4..33ded94a7c 100644
 --- a/src/core/manager.c
 +++ b/src/core/manager.c
-@@ -3653,10 +3653,15 @@ static int manager_run_generators(Manager *m) {
-         argv[4] = NULL;
+@@ -3704,9 +3704,17 @@ static int build_generator_environment(Manager *m, char ***ret) {
+          * adjust generated units to that. Let's pass down some bits of information that are easy for us to
+          * determine (but a bit harder for generator scripts to determine), as environment variables. */
  
-         RUN_WITH_UMASK(0022)
--                (void) execute_directories((const char* const*) paths, DEFAULT_TIMEOUT_USEC, NULL, NULL,
--                                           (char**) argv, m->transient_environment,
--                                           EXEC_DIR_PARALLEL | EXEC_DIR_IGNORE_ERRORS | EXEC_DIR_SET_SYSTEMD_EXEC_PID);
--
-+                (void) execute_directories((const char* const*) paths, DEFAULT_TIMEOUT_USEC,
-+                                    // On NixOS we must propagate PATH to generators so they are
-+                                    // able to find binaries such as `fsck.${fstype}` and
-+                                    // `mkfs.${fstype}`. That is why the last argument of the
-+                                    // function (envp) is set to NULL. This propagates systemd's
-+                                    // environment (e.g. PATH) that was setup
-+                                    // before calling systemd from stage-2-init.sh.
-+                                    NULL, NULL, (char**) argv, /* NixOS: use inherited env */ NULL,
-+                                    EXEC_DIR_PARALLEL | EXEC_DIR_IGNORE_ERRORS | EXEC_DIR_SET_SYSTEMD_EXEC_PID);
-         r = 0;
++        // On NixOS we must propagate PATH to generators so they are
++        // able to find binaries such as `fsck.${fstype}` and
++        // `mkfs.${fstype}`. That is why we ignore transient_environment that
++        // overrides the PATH variable. This propagates systemd's
++        // environment (e.g. PATH) that was setup
++        // before calling systemd from stage-2-init.sh.
++#if 0
+         nl = strv_copy(m->transient_environment);
+         if (!nl)
+                 return -ENOMEM;
++#endif
  
- finish:
+         r = strv_env_assign(&nl, "SYSTEMD_SCOPE", MANAGER_IS_SYSTEM(m) ? "system" : "user");
+         if (r < 0)
 -- 
-2.34.0
+2.36.0
 

@@ -127,13 +127,13 @@ assert withCryptsetup -> (cryptsetup != null);
 let
   wantCurl = withRemote || withImportd;
   wantGcrypt = withResolved || withImportd;
-  version = "250.4";
+  version = "251.2";
 
   # Bump this variable on every (major) version change. See below (in the meson options list) for why.
   # command:
   #  $ curl -s https://api.github.com/repos/systemd/systemd/releases/latest | \
   #     jq '.created_at|strptime("%Y-%m-%dT%H:%M:%SZ")|mktime'
-  releaseTimestamp = "1640290180";
+  releaseTimestamp = "1653139508";
 in
 stdenv.mkDerivation {
   inherit pname version;
@@ -144,7 +144,7 @@ stdenv.mkDerivation {
     owner = "systemd";
     repo = "systemd-stable";
     rev = "v${version}";
-    sha256 = "sha256-AdzPh7dGVrGbbjL9+PqytQOpRzNDUUEftmKZAbFH3L4=";
+    sha256 = "sha256:0swwy5rw6fv0kymxji3p4vv7p31zh886giygyj0xcm4qpknw752z";
   };
 
   # On major changes, or when otherwise required, you *must* reformat the patches,
@@ -170,26 +170,11 @@ stdenv.mkDerivation {
     ./0016-kmod-static-nodes.service-Update-ConditionFileNotEmp.patch
     ./0017-path-util.h-add-placeholder-for-DEFAULT_PATH_NORMAL.patch
     ./0018-pkg-config-derive-prefix-from-prefix.patch
-
-    # In v248 or v249 we started to get in trouble due to our
-    # /etc/systemd/system being a symlink and thus being treated differently by
-    # systemd. With the below patch we mitigate that effect by special casing
-    # all our root unit dirs if they are symlinks. This does exactly what we
-    # need (AFAICT).
-    # See https://github.com/systemd/systemd/pull/20479 for upstream discussion.
-    ./0019-core-handle-lookup-paths-being-symlinks.patch
-
-    # fixes reproducability of dbus xml files
-    # Should no longer be necessary with v251.
-    (fetchpatch {
-      url = "https://github.com/systemd/systemd/pull/22174.patch";
-      sha256 = "sha256-RVhxUEUiISgRlIP/AhU+w1VHfDQw2W16cFl2TXXyxno=";
-    })
   ] ++ lib.optional stdenv.hostPlatform.isMusl (
     let
       oe-core = fetchzip {
-        url = "https://git.openembedded.org/openembedded-core/snapshot/openembedded-core-7e35a575ef09a85e625a81e0b4d80b020e3e3a92.tar.bz2";
-        sha256 = "0dvz4685nk0y7nnq3sr2q8ab3wfx0bi8ilwcgn0h6kagwcnav2n8";
+        url = "https://git.openembedded.org/openembedded-core/snapshot/openembedded-core-1e740b5c2227c0040621ae63436d06db4873670f.tar.bz2";
+        sha256 = "0fiwypgnp7z60rbbmysh9c8pmfnz5361savc3by7w22q8x1sbvbi";
       };
       musl-patches = oe-core + "/meta/recipes-core/systemd/systemd";
     in
@@ -224,6 +209,7 @@ stdenv.mkDerivation {
 
   postPatch = ''
     substituteInPlace src/basic/path-util.h --replace "@defaultPathNormal@" "${placeholder "out"}/bin/"
+    substituteInPlace src/test/test-load-fragment.c --replace "/bin/echo" "${coreutils}/bin/echo"
     substituteInPlace src/boot/efi/meson.build \
       --replace \
       "find_program('objcopy'" \
@@ -580,6 +566,10 @@ stdenv.mkDerivation {
             "src/import/importd.c"
             "src/import/pull-tar.c"
             "src/import/pull.c"
+            # FIXME: These and some of the entries above shouldn't be
+            # substituted, it's not the tar binary!
+            "src/sysupdate/sysupdate-resource.c"
+            "src/sysupdate/sysupdate-transfer.c"
           ];
         }
       ];
