@@ -5984,6 +5984,8 @@ with pkgs;
 
   elasticsearch-curator = callPackage ../tools/admin/elasticsearch-curator { };
 
+  efifs = callPackage ../tools/misc/efifs {};
+
   embree = callPackage ../development/libraries/embree { };
   embree2 = callPackage ../development/libraries/embree/2.x.nix { };
 
