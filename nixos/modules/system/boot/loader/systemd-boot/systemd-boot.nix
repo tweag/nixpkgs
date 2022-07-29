@@ -279,6 +279,13 @@ in
       (mkIf cfg.netbootxyz.enable {
         "EFI/netbootxyz/netboot.xyz.efi" = "${pkgs.netbootxyz-efi}";
       })
+      {
+        "EFI/systemd/drivers/ext2_x64.efi" = "${pkgs.efifs}/ext2.efi";
+        #"EFI/systemd/drivers/ext2_x64.efi" = pkgs.fetchurl {
+        #  sha256 = "sha256-6PuTQQA4RbtiOe/aZ0/rpzYcgHXA4hK+bMrvQk+P5e4=";
+        #  url = "https://github.com/pbatard/efifs/releases/download/v1.8/ext2_x64.efi";
+        #};
+      }
     ];
 
     boot.loader.systemd-boot.extraEntries = mkMerge [

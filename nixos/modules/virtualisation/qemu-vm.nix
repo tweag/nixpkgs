@@ -259,10 +259,10 @@ let
           export MTOOLS_SKIP_CHECK=1
           ${pkgs.mtools}/bin/mlabel -i /dev/vda2 ::boot
 
-          ${pkgs.dosfstools}/bin/mkfs.fat -F16 /dev/vda3
-          export MTOOLS_SKIP_CHECK=1
-          ${pkgs.mtools}/bin/mlabel -i /dev/vda3 ::realboot
-          #${pkgs.e2fsprogs}/bin/mkfs.ext4 -U 688B1749-C2AC-4974-A455-E92455687699 -L realboot /dev/vda3
+          # ${pkgs.dosfstools}/bin/mkfs.fat -F16 /dev/vda3
+          # export MTOOLS_SKIP_CHECK=1
+          # ${pkgs.mtools}/bin/mlabel -i /dev/vda3 ::realboot
+          ${pkgs.e2fsprogs}/bin/mkfs.ext2 -U 688B1749-C2AC-4974-A455-E92455687699 -L realboot /dev/vda3
 
           # Mount /boot; load necessary modules first.
           ${pkgs.kmod}/bin/insmod ${pkgs.linux}/lib/modules/*/kernel/fs/nls/nls_cp437.ko.xz || true
@@ -1086,7 +1086,7 @@ in
           # see note [Disk layout with `useBootLoader`]
           "/boot" = {
             device = "${lookupDriveDeviceName "boot" cfg.qemu.drives}3"; # 2 for e.g. `vdb2`, as created in `bootDisk`
-            fsType = "vfat";
+            fsType = "ext2";
             noCheck = true; # fsck fails on a r/o filesystem
           };
 
