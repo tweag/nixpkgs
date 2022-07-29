@@ -39,12 +39,12 @@ let
 
       ${concatStrings (mapAttrsToList (n: v: ''
         ${pkgs.coreutils}/bin/install -Dp "${v}" "${efi.efiSysMountPoint}/"${escapeShellArg n}
-        ${pkgs.coreutils}/bin/install -D $empty_file "${efi.efiSysMountPoint}/efi/nixos/.extra-files/"${escapeShellArg n}
+        ${pkgs.coreutils}/bin/install -D $empty_file "${efi.efiSysMountPoint}/EFI/nixos/.extra-files/"${escapeShellArg n}
       '') cfg.extraFiles)}
 
       ${concatStrings (mapAttrsToList (n: v: ''
         ${pkgs.coreutils}/bin/install -Dp "${pkgs.writeText n v}" "${efi.efiSysMountPoint}/loader/entries/"${escapeShellArg n}
-        ${pkgs.coreutils}/bin/install -D $empty_file "${efi.efiSysMountPoint}/efi/nixos/.extra-files/loader/entries/"${escapeShellArg n}
+        ${pkgs.coreutils}/bin/install -D $empty_file "${efi.efiSysMountPoint}/EFI/nixos/.extra-files/loader/entries/"${escapeShellArg n}
       '') cfg.extraEntries)}
     '';
   };
@@ -184,7 +184,7 @@ in
       example = literalExpression ''
         { "memtest86.conf" = '''
           title MemTest86
-          efi /efi/memtest86/memtest86.efi
+          efi /EFI/memtest86/memtest86.efi
         '''; }
       '';
       description = lib.mdDoc ''
@@ -274,10 +274,10 @@ in
       # be updated to use the 32-bit EFI app on 32-bit systems.  The 32-bit EFI
       # app filename is BOOTIA32.efi.
       (mkIf cfg.memtest86.enable {
-        "efi/memtest86/BOOTX64.efi" = "${pkgs.memtest86-efi}/BOOTX64.efi";
+        "EFI/memtest86/BOOTX64.efi" = "${pkgs.memtest86-efi}/BOOTX64.efi";
       })
       (mkIf cfg.netbootxyz.enable {
-        "efi/netbootxyz/netboot.xyz.efi" = "${pkgs.netbootxyz-efi}";
+        "EFI/netbootxyz/netboot.xyz.efi" = "${pkgs.netbootxyz-efi}";
       })
     ];
 
@@ -285,13 +285,13 @@ in
       (mkIf cfg.memtest86.enable {
         "${cfg.memtest86.entryFilename}" = ''
           title  MemTest86
-          efi    /efi/memtest86/BOOTX64.efi
+          efi    /EFI/memtest86/BOOTX64.efi
         '';
       })
       (mkIf cfg.netbootxyz.enable {
         "${cfg.netbootxyz.entryFilename}" = ''
           title  netboot.xyz
-          efi    /efi/netbootxyz/netboot.xyz.efi
+          efi    /EFI/netbootxyz/netboot.xyz.efi
         '';
       })
     ];

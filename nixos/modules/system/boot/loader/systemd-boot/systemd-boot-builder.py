@@ -78,7 +78,7 @@ def copy_from_profile(profile: Optional[str], generation: int, specialisation: O
     store_file_path = profile_path(profile, generation, specialisation, name)
     suffix = os.path.basename(store_file_path)
     store_dir = os.path.basename(os.path.dirname(store_file_path))
-    efi_file_path = "/efi/nixos/%s-%s.efi" % (store_dir, suffix)
+    efi_file_path = "/EFI/nixos/%s-%s.efi" % (store_dir, suffix)
     if not dry_run:
         copy_if_not_exists(store_file_path, "@bootPath@%s" % (efi_file_path))
     return efi_file_path
@@ -191,7 +191,7 @@ def remove_old_entries(gens: List[SystemIdentifier]) -> None:
                 os.unlink(path)
         except ValueError:
             pass
-    for path in glob.iglob("@bootPath@/efi/nixos/*"):
+    for path in glob.iglob("@bootPath@/EFI/nixos/*"):
         if not path in known_paths and not os.path.isdir(path):
             os.unlink(path)
 
@@ -265,7 +265,7 @@ def main() -> None:
             print("updating systemd-boot from %s to %s" % (installed_version, available_version))
             subprocess.check_call(["@systemd@/bin/bootctl", "--esp-path=@efiSysMountPoint@", "--boot-path=@bootPath@", "update"])
 
-    mkdir_p("@bootPath@/efi/nixos")
+    mkdir_p("@bootPath@/EFI/nixos")
     mkdir_p("@bootPath@/loader/entries")
 
     gens = get_generations()
@@ -283,8 +283,8 @@ def main() -> None:
             profile = f"profile '{gen.profile}'" if gen.profile else "default profile"
             print("ignoring {} in the list of boot entries because of the following error:\n{}".format(profile, e), file=sys.stderr)
 
-    for root, _, files in os.walk('@bootPath@/efi/nixos/.extra-files', topdown=False):
-        relative_root = root.removeprefix("@bootPath@/efi/nixos/.extra-files").removeprefix("/")
+    for root, _, files in os.walk('@bootPath@/EFI/nixos/.extra-files', topdown=False):
+        relative_root = root.removeprefix("@bootPath@/EFI/nixos/.extra-files").removeprefix("/")
         actual_root = os.path.join("@bootPath@", relative_root)
 
         for file in files:
@@ -298,7 +298,7 @@ def main() -> None:
             os.rmdir(actual_root)
         os.rmdir(root)
 
-    mkdir_p("@bootPath@/efi/nixos/.extra-files")
+    mkdir_p("@bootPath@/EFI/nixos/.extra-files")
 
     subprocess.check_call("@copyExtraFiles@")
 
