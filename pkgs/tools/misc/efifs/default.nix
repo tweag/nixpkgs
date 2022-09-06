@@ -6,7 +6,7 @@
 , nasm
 }:
 let
-  version = "1.8";
+  version = "1.9";
 
   targetArch =
     if stdenv.isi686 then
@@ -23,7 +23,7 @@ let
     repo = "efifs";
     rev = "v${version}";
     fetchSubmodules = true;
-    sha256 = "sha256-+hao8m6H+Qi+isJZBMBSXYF1xSaAYtTepIY9n6LEWV0=";
+    sha256 = "sha256-p+o020w4lREOAYnUkhVKfjeKxS73YCCd9Jnue0IFSRY=";
   };
 in
 edk2.mkDerivation "EfiFsPkg/EfiFsPkg.dsc" {
