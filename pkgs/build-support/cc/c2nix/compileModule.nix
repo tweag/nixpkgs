@@ -6,7 +6,7 @@
   preprocessor_flags,
   cflags,
   cppflags,
-  include_path,
+  all_include_dirs,
   splitStringRE,
   # Input from previous step
   build_dependency_info,
@@ -20,6 +20,13 @@
 }:
 name:
 let
+
+    # TODO: Since we pass all include dirs to the compiler in the compilation derivations, any change to the include path requires rebuilding everything.
+    # TODO: Filter only the include directories required for each module
+    include_path = toString (
+        map (inc: "-I ${inc}") all_include_dirs
+    );
+
     # Return a list of relative paths to files in all_src that the given module build depends on, by reading the .d file from
     # the dependency build and filtering the dependencies that are relative paths (as opposed to paths in the nix store)
     # TODO: where does it even find Nix store paths?

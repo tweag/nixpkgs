@@ -90,13 +90,8 @@ splitStringRE,
     # /nix/store/something -> . ?
     rel_path = sources.getSubpath all_src;
 
-    # TODO: Since we pass all include dirs to the compiler in the compilation derivations, any change to the include path requires rebuilding everything.
-    # We could use the full include path only in the build_dependency_info derivation, and compute the required subset of it for each compilation step.
-    include_path = toString (
-        map (inc: "-I ${inc}") all_include_dirs
-    );
-
     build_dependency_info = import ./dependencyInfo.nix {
+      inherit all_include_dirs;
       # ...
     };
 
@@ -104,7 +99,6 @@ splitStringRE,
     # library that this program only uses part of) so I'm not sure it's worth it.
     # TODO: If not, could this just be done in Nix without going through a derivation?
     modules = splitStringRE "\n" (lib.strings.fileContents build_dependency_info.modules);
-
 
     # TODO: this should be *a* parameter. Should it be *the* parameter?
     clang_tidy_checks = builtins.concatStringsSep "," [
@@ -152,6 +146,7 @@ splitStringRE,
 
     # Return a derivation that compiles the given module to an object file
     compile_module = import ./compileModule.nix {
+      inherit all_include_dirs;
       # ...
     };
 

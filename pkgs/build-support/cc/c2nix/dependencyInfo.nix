@@ -1,13 +1,20 @@
+/*
+TODO: Output JSON instead of .d file
+*/
 {
 stdenv,
 name,
 src,
 includeInputs,
-include_path,
+all_include_dirs,
 preprocessor_flags,
 }:
 let
   all_src = src;
+
+  include_path = toString (
+      map (inc: "-I ${inc}") all_include_dirs
+  );
 in
 # Dependency information - built at instantiation time!
 stdenv.mkDerivation {
@@ -24,6 +31,9 @@ stdenv.mkDerivation {
     #  may (in nix circa 2.7) bring along the context of the dependencies of the other files
     #  which can cause a variety of problems without helping us any.
     # -- Lagoda (with Dave over my shoulder) 2022-03-22
+
+    # out: one dependency info file per source file, containing Make rules
+    # modules: file containing list of source files, one per line
     outputs = ["out" "modules"];
 
     build = ''
