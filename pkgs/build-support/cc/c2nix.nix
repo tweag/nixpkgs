@@ -1,3 +1,19 @@
+/*
+TODO:
+- [ ] Try it out with a C code sample
+- [ ] Split it up into multiple files
+  - build_dependency_info
+  - compile_module
+  - Final linking step in buildCPP
+  - Top-level functions for buildCPPBinary, buildCPPStaticLibrary, buildCPPSharedLibrary
+- [ ] Document the code and interface
+  - [ ] Document all parameters for all functions
+- [ ] Improve the readibility of the code
+- [ ] Improve the workings of the code
+- [ ] Write tests
+- [ ] Make a list of things to keep in the fork
+*/
+
 # TODO: makeOverridable
 
 {
@@ -253,7 +269,7 @@ in rec {
                     if relative_to_src!=[] then (lib.concatStringsSep "/" relative_to_src) else ".";
 
             all_include_dirs = lib.lists.unique
-                ( map ( getRelativePathFrom all_src ) includeSrc );
+                ( map ( getRelativePathFrom all_src ) includeSrc ); # /nix/store/foo/bar/baz -> ../../foo/bar/baz
 
             rel_path = sources.getSubpath all_src;
 
@@ -266,10 +282,13 @@ in rec {
                 map (inc: "-I ${inc}") all_include_dirs
             );
 
+
+
             # Dependency information - built at instantiation time!
             build_dependency_info = stdenv.mkDerivation {
                 name = "${name}.depinfo";
 
+                # TODO: can we use `src` and `unpack = false`?
                 inherit all_src;
 
                 buildInputs = includeInputs;
@@ -292,19 +311,32 @@ in rec {
                         dep_dir=''${dep_file%/*}
                         mkdir -p "$dep_dir"
                         [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
+
+                        # -M  Instead of outputting the result of
+                        # preprocessing, output a rule suitable for make
+                        # describing the dependencies of the main source file.
+                        # The preprocessor
+                        # outputs one make rule containing the object file name for
+                        # that source file, a colon, and the names of all the included
+                        # files, including those coming from -include or -imacros
+                        # command-line options
                         $COMPILER -M ${preprocessor_flags} ${include_path} $source_file > $dep_file &
                         PIDS+=($!)
                     done
+                    # TODO: Use NIX_BUILD_CORES
                     wait ''${PIDS[@]}
                 '';
             };
 
             # TODO: Detect extra files in all_src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
             # library that this program only uses part of) so I'm not sure it's worth it.
+            # TODO: If not, could this just be done in Nix without going through a derivation?
             modules = splitStringRE "\n" (lib.strings.fileContents build_dependency_info.modules);
 
             # Return a list of relative paths to files in all_src that the given module build depends on, by reading the .d file from
             # the dependency build and filtering the dependencies that are relative paths (as opposed to paths in the nix store)
+            # TODO: where does it even find Nix store paths?
+            # TODO: At derivation build time, output a different format, e.g. JSON, so we don't need to do parsing in Nix
             get_module_source_dependencies = name:
                 let
                     raw_dependencies = builtins.tail (splitStringRE "[ \\\n]+" (builtins.readFile "${build_dependency_info}/${name}.d"));
@@ -321,7 +353,7 @@ in rec {
                     # a duplicated dependency when using GCC
                     lib.lists.unique (lib.lists.concatMap relative_paths raw_dependencies);
 
-            # Return bash code to link each source dependency of the given module into a (relative) location in the current directory
+            # Return bash code to symlink each source dependency of the given module into a (relative) location in the current directory
             # Dependencies on e.g. includeInputs will appear in the .d file as /nix/store paths and be filtered out by get_module_source_dependencies.
             #   We don't need special handling for them - they will also be available at compile time, and if their derivations change
             #   everything will be rebuilt.
@@ -404,6 +436,7 @@ in rec {
                         hardeningDisable = [ "fortify" ];
                         name = "${builtins.baseNameOf name}.o";
                         buildInputs = buildInputs ++ includeInputs;
+                        # TODO: don't hard-code phases
                         phases =  ["build"] ++ (if clang_tidy_check && !is_c then ["check"] else []);
                         build = ''
                             mkdir -p source/${rel_path}
@@ -411,6 +444,7 @@ in rec {
                             ${link_module_dependencies name}
                             ${if is_c then "$CC" else "$CXX"} -c ${name} ${preprocessor_flags} ${if is_c then cflags else cppflags} ${include_path} -o $out
                         '';
+                        # TODO: This depends on clang_tidy even when this phase isn't ran in the end
                         check = ''
                             ${clang_tools_with_libcxx}/bin/clang-tidy \
                                 ${clang_tidy_args} \
@@ -428,20 +462,24 @@ in rec {
         in
             stdenv.mkDerivation (link_attributes // {
                 inherit name artifactName outputDir make_fhs_compatible;
+                # TODO: don't hard-code phases
                 phases = ["build" "postFixup"] ++ (if symbol_leakage_check || glibc_version_check then ["check"] else []);
                 buildInputs = buildInputs ++ includeInputs;
                 outputs = if separateDebugInfo then [ "out" "debug" ] else [ "out" ];
 
                 build = ''
+                    # TODO: Escaping..?
+                    # TODO: Don't use toString on lists, implicit concatenation with " "
                     echo -e "${link_command} ${toString object_files} ${link_flags}"
                     mkdir -p $out/$outputDir ${if separateDebugInfo then "$debug/$outputDir" else ""}
                     ${link_command} ${toString object_files} ${link_flags}
                 '';
 
                 check = ''
-                    true
+                    true # TODO: check if t
                     ${if symbol_leakage_check then ''
                         echo "checking \`${artifactName}' for symbol leakage..."
+                        # TODO: What is "V _Z"??
                         ! ${pkgs.binutils-unwrapped}/bin/nm -gD "$out/$outputDir/${artifactName}" | ${pkgs.gnugrep}/bin/grep "V _Z" > /dev/null
                     '' else ""}
                     ${if glibc_version_check then ''
@@ -460,15 +498,19 @@ in rec {
                 postFixup = ''
                     true
                     ${if separateDebugInfo then ''
+                        # TODO: check if this is a typical Nixpkgs thing to do, maybe reusable?
                         objcopy --only-keep-debug "$out/$outputDir/${artifactName}" "$debug/$outputDir/${artifactName}.debug"
                         strip --strip-debug --strip-unneeded "$out/$outputDir/${artifactName}"
                         objcopy --add-gnu-debuglink="$debug/$outputDir/${artifactName}.debug" "$out/$outputDir/${artifactName}"
                     '' else ""}
+                    # TODO: Maybe not reasonable for nixpkgs
+                    # TODO: check if we could repurpose Nix bundlers or otherwise split that out
                     ${if make_fhs_compatible then "patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $out/$outputDir/$artifactName" else ""}
                 '';
 
                 passthru = {
                     # implementation stuff useful for repl use etc
+                    # TODO: check what's important to keep here
                     inherit stdenv includeInputs buildInputs modules build_dependency_info pkgs splitStringRE getRelativePathFrom src includeSrc all_src all_include_dirs get_module_source_dependencies link_module_dependencies compile_module object_files;
                 };
             });
