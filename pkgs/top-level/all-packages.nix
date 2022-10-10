@@ -359,6 +359,8 @@ with pkgs;
 
   caroline = callPackage ../development/libraries/caroline { };
 
+  c2nix = callPackage ../build-support/cc/c2nix { };
+
   castget = callPackage ../applications/networking/feedreaders/castget { };
 
   castxml = callPackage ../development/tools/castxml {

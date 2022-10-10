@@ -88,4 +88,6 @@ with pkgs;
   };
 
   pkgs-lib = recurseIntoAttrs (import ../pkgs-lib/tests { inherit pkgs; });
+
+  c2nix = callPackage ../build-support/cc/c2nix/tests { };
 }

@@ -18,6 +18,7 @@ TODO:
 
 {
     pkgs,
+    callPackage,
     # TODO drop this when it's in nixpkgs main
     sourcesLib ? (import ./pinned_nixpkgs.nix).sources
 }:
@@ -45,6 +46,8 @@ in rec {
     inherit sources;
 
     glibc_version_symbols = glibc_version_symbols_internal "$1";
+
+    dependencyInfo = callPackage ./dependencyInfo.nix { };
 
     buildCPP = import ./buildCPP.nix;
 
