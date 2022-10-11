@@ -91,9 +91,11 @@ splitStringRE,
     rel_path = sources.getSubpath all_src;
 
     build_dependency_info = import ./dependencyInfo.nix {
-      inherit all_include_dirs;
-      # ...
-    };
+      inherit
+        all_include_dirs
+        preprocessor_flags
+        # ...
+    ;};
 
     # TODO: Detect extra files in all_src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
     # library that this program only uses part of) so I'm not sure it's worth it.
@@ -146,9 +148,12 @@ splitStringRE,
 
     # Return a derivation that compiles the given module to an object file
     compile_module = import ./compileModule.nix {
-      inherit all_include_dirs;
+      inherit
+        all_include_dirs
+        compile_attributes
+        preprocessor_flags
       # ...
-    };
+    ;};
 
     object_files = builtins.map compile_module modules;
 in
@@ -201,8 +206,24 @@ in
         '';
 
         passthru = {
-            # implementation stuff useful for repl use etc
-            # TODO: check what's important to keep here
-            inherit stdenv includeInputs buildInputs modules build_dependency_info pkgs splitStringRE getRelativePathFrom src includeSrc all_src all_include_dirs get_module_source_dependencies link_module_dependencies compile_module object_files;
+          # implementation stuff useful for repl use etc
+          # TODO: check what's important to keep here
+          inherit
+            stdenv
+            includeInputs
+            buildInputs
+            modules
+            build_dependency_info
+            pkgs
+            splitStringRE
+            getRelativePathFrom
+            src
+            includeSrc
+            all_src
+            all_include_dirs
+            get_module_source_dependencies
+            link_module_dependencies
+            compile_module
+            object_files
         };
     });
