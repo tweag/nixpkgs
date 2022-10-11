@@ -63,6 +63,7 @@ splitStringRE,
         setName (name + "-source")
             (extend
                 (sourceFilesBySuffices src [ ".c" ".cpp" ".h" ".hpp" ".cc" ".cxx" ])
+                # TODO: Why not .hxx above? Configurable?
                 (map (s: sourceFilesBySuffices s [".h" ".hpp" ".hxx" ]) includeSrc));
 
     # Returns a relative path such that path == src + (getRelativePathFrom src path)
