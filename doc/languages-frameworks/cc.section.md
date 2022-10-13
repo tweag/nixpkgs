@@ -9,6 +9,8 @@ To build C or C++ projects with special requirements, the following tools are av
 
 ### `buildCPPBinary`
 
+Build a C or C++ binary.
+
 #### Arguments
 
 `name` _(string)_
@@ -98,6 +100,8 @@ To build C or C++ projects with special requirements, the following tools are av
 
 ### `buildCPPStaticLibrary`
 
+Build a C or C++ statically linked library.
+
 #### Arguments
 
 `name` _(string)_
@@ -173,6 +177,8 @@ To build C or C++ projects with special requirements, the following tools are av
 [version script]: https://www.gnu.org/software/gnulib/manual/html_node/LD-Version-Scripts.html
 
 ### `buildCPPSharedLibrary`
+
+Build a C or C++ shared library.
 
 #### Arguments
 
