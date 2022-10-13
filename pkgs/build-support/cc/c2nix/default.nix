@@ -20,7 +20,9 @@ TODO:
     pkgs,
     callPackage,
     # TODO drop this when it's in nixpkgs main
-    sourcesLib ? (import ./pinned_nixpkgs.nix).sources
+    lib,
+    sourcesLib ? lib,
+    # sourcesLib ? (import ./pinned_nixpkgs.nix).sources
 }:
 let
     inherit (sourcesLib) sources filesystem;
@@ -47,9 +49,9 @@ in rec {
 
     glibc_version_symbols = glibc_version_symbols_internal "$1";
 
-    dependencyInfo = callPackage ./dependencyInfo.nix { };
-
-    buildCPP = import ./buildCPP.nix;
+    buildCPP = callPackage ./buildCPP.nix {
+      inherit sources filesystem splitStringRE glibc_version_symbols_internal;
+    };
 
     buildCPPBinary =
         {
@@ -75,7 +77,7 @@ in rec {
 
             # This sets the loader to use the default FHS location and checks that no "too new" glibc version is required.
             # Useful for when you want to build software that will run on non-NixOS systems.
-            make_redistributable ? true,
+            make_redistributable ? false,
 
             # If true, runs the `clang-tidy` linter on all source files alongside compilation.
             clang_tidy_check ? false,
@@ -87,7 +89,7 @@ in rec {
             link_attributes,
             compile_attributes ? {},
         }: buildCPP {
-            inherit name src includeSrc stdenv includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
+            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
             make_fhs_compatible = make_redistributable;
             glibc_version_check = make_redistributable;
             outputDir = "bin";
@@ -128,7 +130,7 @@ in rec {
             cppflags,
             compile_attributes ? {},
         }: buildCPP rec {
-            inherit name src includeSrc stdenv includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
+            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
             outputDir = "lib";
             artifactName = "lib${name}.a";
             separateDebugInfo = false;
@@ -180,7 +182,7 @@ in rec {
             version_script ? null,
             separateDebugInfo ? true
         }: buildCPP {
-            inherit name src includeSrc stdenv includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
+            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
             make_fhs_compatible = false;
             glibc_version_check = make_redistributable;
             outputDir = "lib";

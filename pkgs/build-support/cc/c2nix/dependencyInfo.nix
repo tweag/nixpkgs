@@ -61,4 +61,4 @@ stdenv.mkDerivation {
         # TODO: Use NIX_BUILD_CORES
         wait ''${PIDS[@]}
     '';
-};
+}

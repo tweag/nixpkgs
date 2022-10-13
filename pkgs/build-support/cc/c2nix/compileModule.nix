@@ -1,4 +1,8 @@
 {
+  sources,
+  all_src,
+  stdenv,
+  rel_path,
   lib,
   compile_attributes,
   buildInputs,

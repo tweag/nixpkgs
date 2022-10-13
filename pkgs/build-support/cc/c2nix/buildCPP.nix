@@ -1,4 +1,18 @@
 {
+pkgs,
+# The environment to use for the build
+stdenv ? pkgs.stdenv,
+clang-tools,
+# TODO: llvmPackages_13, rebase nixpkgs
+llvmPackages,
+llvmPackages_13 ? llvmPackages,
+lib,
+sources,
+filesystem,
+splitStringRE,
+glibc_version_symbols_internal,
+}:
+{
 name,
 
 # Source and/or include files, in the correct relative relationship.
@@ -13,8 +27,6 @@ includeSrc ? [],
 # Relative to the source root
 include_dirs ? [ "." ],
 
-# The environment to use for the build
-stdenv ? pkgs.stdenv,
 
 # Derivations that provide include files, and therefore are dependencies of the dependency analysis step.
 # TODO: If some derivations are produced by CPP builds, automatically add their headers to `includeSrc` instead to avoid unnecessary dependencies?
@@ -55,8 +67,6 @@ link_attributes,
 compile_attributes,
 # TODO: is this intended?
 separateDebugInfo ? true,
-glibc_version_symbols_internal,
-splitStringRE,
 }: let
     # Assemble a single nix store path with all of the source and includes for the entire build. build_dependency_info will depend
     #   on it, but individual compile steps will not (since it will change whenever anything changes)
@@ -94,10 +104,14 @@ splitStringRE,
 
     build_dependency_info = import ./dependencyInfo.nix {
       inherit
+        stdenv
+        name
+        src
+        includeInputs
         all_include_dirs
         preprocessor_flags
-        # ...
-    ;};
+        ;
+    };
 
     # TODO: Detect extra files in all_src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
     # library that this program only uses part of) so I'm not sure it's worth it.
@@ -151,11 +165,26 @@ splitStringRE,
     # Return a derivation that compiles the given module to an object file
     compile_module = import ./compileModule.nix {
       inherit
-        all_include_dirs
+        sources
+        all_src
+        stdenv
+        rel_path
+        lib
         compile_attributes
+        buildInputs
+        includeInputs
         preprocessor_flags
-      # ...
-    ;};
+        cflags
+        cppflags
+        all_include_dirs
+        splitStringRE
+        build_dependency_info
+        clang-tools
+        llvmPackages_13
+        clang_tidy_check
+        clang_tidy_args
+        clang_tidy_config;
+    };
 
     object_files = builtins.map compile_module modules;
 in
@@ -223,9 +252,9 @@ in
             includeSrc
             all_src
             all_include_dirs
-            get_module_source_dependencies
-            link_module_dependencies
+            # get_module_source_dependencies
+            # link_module_dependencies
             compile_module
-            object_files
+            object_files;
         };
-    });
+    })
