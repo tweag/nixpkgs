@@ -53,6 +53,7 @@ link_command,
 link_flags,
 link_attributes,
 compile_attributes,
+# TODO: is this intended?
 separateDebugInfo ? true,
 glibc_version_symbols_internal,
 splitStringRE,

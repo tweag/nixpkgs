@@ -95,6 +95,7 @@ in rec {
             link_command = ''
                 $CC -v -o $out/bin/${name}'';
             inherit link_flags;
+            # TODO: this will always build `separateDebugInfo` using the default in `buildCPP` - is this intended?
         };
 
     buildCPPStaticLibrary =
