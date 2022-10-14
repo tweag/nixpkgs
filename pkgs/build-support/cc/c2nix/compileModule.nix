@@ -11,7 +11,6 @@
   rel_path,
   compile_attributes,
   buildInputs,
-  includeInputs,
   preprocessor_flags,
   cflags,
   cppflags,
@@ -38,9 +37,6 @@ let
     srcOrigin = sources.getOriginalFocusPath all_src;
 
     # Return bash code to symlink each source dependency of the given module into a (relative) location in the current directory
-    # Dependencies on e.g. includeInputs will appear in the .d file as /nix/store paths and be filtered out by dependencies,
-    #   We don't need special handling for them - they will also be available at compile time, and if their derivations change
-    #   everything will be rebuilt.
     # But we don't want a dependency on the whole `all_src` - that would prevent incremental builds. Instead we take a dependency on
     #   the relevant individual source files by (symbolic) linking them into the current directory in the compile step.
     # This requires converting the relative path (originally in the `all_src` /nix/store path) back into an origin path.
@@ -72,7 +68,7 @@ stdenv.mkDerivation (compile_attributes // {
     # sometimes transforming correct programs into incorrect ones. We turn that off.
     hardeningDisable = [ "fortify" ];
     name = lib.strings.sanitizeDerivationName "${builtins.baseNameOf name}.o";
-    buildInputs = buildInputs ++ includeInputs;
+    buildInputs = buildInputs;
     # TODO: don't hard-code phases
     phases =  ["build"] ++ (if clang_tidy_check && !is_c then ["check"] else []);
     build = ''

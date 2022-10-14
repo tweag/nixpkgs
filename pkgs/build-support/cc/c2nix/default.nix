@@ -77,9 +77,6 @@ in rec {
             # The environment to use for the build
             stdenv ? pkgs.stdenv,
 
-            # Derivations that provide include files, and therefore are dependencies of the dependency analysis step.
-            includeInputs,
-
             # Derivations that are dependencies of the build (currently, both compile and link steps)
             buildInputs,
 
@@ -97,7 +94,7 @@ in rec {
             link_attributes,
             compile_attributes ? {},
         }: buildCPP {
-            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
+            inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
             make_fhs_compatible = make_redistributable;
             glibc_version_check = make_redistributable;
             outputDir = "bin";
@@ -124,9 +121,6 @@ in rec {
             # The environment to use for the build
             stdenv ? pkgs.stdenv,
 
-            # Derivations that provide include files, and therefore are dependencies of the dependency analysis step.
-            includeInputs,
-
             # Derivations that are dependencies of the build (currently, both compile and link steps)
             buildInputs,
 
@@ -138,7 +132,7 @@ in rec {
             cppflags,
             compile_attributes ? {},
         }: buildCPP rec {
-            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
+            inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
             outputDir = "lib";
             artifactName = "lib${name}.a";
             separateDebugInfo = false;
@@ -166,9 +160,6 @@ in rec {
             # The environment to use for the build
             stdenv ? pkgs.stdenv,
 
-            # Derivations that provide include files, and therefore are dependencies of the dependency analysis step.
-            includeInputs,
-
             # Derivations that are dependencies of the build (currently, both compile and link steps)
             buildInputs,
 
@@ -190,7 +181,7 @@ in rec {
             version_script ? null,
             separateDebugInfo ? true
         }: buildCPP {
-            inherit name src includeSrc includeInputs buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
+            inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
             make_fhs_compatible = false;
             glibc_version_check = make_redistributable;
             outputDir = "lib";

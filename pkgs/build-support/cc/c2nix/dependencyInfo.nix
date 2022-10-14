@@ -6,7 +6,6 @@ runCommandCC,
 {
 name,
 src,
-includeInputs,
 all_include_dirs,
 preprocessor_flags,
 }:
@@ -30,6 +29,18 @@ let
 
     echo "Determining file dependencies of $source_file with $COMPILER" >&2
 
+    # Idea: Don't use -MM, but -M, such that dependencies on /nix/store
+    # libraries are shown, then make sure to have these libraries as a build
+    # input for the files that require them. This way, when those libraries
+    # change, only part of the files need to be recompiled.
+    # Maybe how to:
+    # - Output all store paths in a separate attribute
+    # - Use builtins.storePath to attach the corresponding string context
+    # - Make the paths a `buildInput` for the individual modules compilation
+    # Problem: This doesn't work, because we can't rely on these store paths
+    # existing, and we shouldn't write store paths to a JSON file because it
+    # couldn't be committed to nixpkgs.
+
     # -M to output make rule of the files dependencies
     # -MM instead to not include system libraries, limits it to only the projects files
     # -MT to specify the make rule target string, let it be fixed because we don't need to know it
@@ -44,6 +55,7 @@ let
       jq --raw-input -s --arg path "$source_file" '{ name: $path, dependencies: rtrimstr("\n") | split("\n") }' \
       > "$result_dir"/"$source_file.json"
   '';
+
 # Dependency information - built at instantiation time!
 in runCommandCC "${name}.depinfo" {
 
@@ -51,9 +63,6 @@ in runCommandCC "${name}.depinfo" {
     jq
     processFile
   ];
-
-  # TODO: Still needed with -MM?
-  buildInputs = includeInputs;
 
   passAsFile = [ "sedScript" ];
 

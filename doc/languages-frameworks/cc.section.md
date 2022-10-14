@@ -48,10 +48,6 @@ Build a C or C++ binary.
 
     *Default:* `pkgs.stdenv`
 
-`includeInputs` _(list of derivations)_
-
-: Derivations that provide header files.
-
 `buildInputs` _(list of derivations)_
 
 : Derivations that are dependencies of the build.
@@ -139,10 +135,6 @@ Build a C or C++ statically linked library.
 
     *Default:* `pkgs.stdenv`
 
-`includeInputs` _(list of derivations)_
-
-: Derivations that provide header files.
-
 `buildInputs` _(list of derivations)_
 
 : Derivations that are dependencies of the build.
@@ -216,10 +208,6 @@ Build a C or C++ shared library.
 : The environment to use for the build.
 
     *Default:* `pkgs.stdenv`
-
-`includeInputs` _(list of derivations)_
-
-: Derivations that provide header files.
 
 `buildInputs` _(list of derivations)_
 

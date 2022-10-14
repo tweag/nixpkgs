@@ -24,11 +24,6 @@ includeSrc ? [],
 # Relative to the source root
 include_dirs ? [ "." ],
 
-
-# Derivations that provide include files, and therefore are dependencies of the dependency analysis step.
-# TODO: If some derivations are produced by CPP builds, automatically add their headers to `includeSrc` instead to avoid unnecessary dependencies?
-includeInputs,
-
 # Derivations that are dependencies of the build (currently, both compile and link steps)
 buildInputs,
 
@@ -103,7 +98,6 @@ separateDebugInfo ? true,
       inherit
         name
         src
-        includeInputs
         all_include_dirs
         preprocessor_flags
         ;
@@ -163,12 +157,10 @@ separateDebugInfo ? true,
         rel_path
         compile_attributes
         buildInputs
-        includeInputs
         preprocessor_flags
         cflags
         cppflags
         all_include_dirs
-        build_dependency_info
         clang_tidy_check
         clang_tidy_args
         clang_tidy_config;
@@ -180,7 +172,7 @@ in
         inherit name artifactName outputDir make_fhs_compatible;
         # TODO: don't hard-code phases
         phases = ["build" "postFixup"] ++ (if symbol_leakage_check || glibc_version_check then ["check"] else []);
-        buildInputs = buildInputs ++ includeInputs;
+        buildInputs = buildInputs;
         outputs = if separateDebugInfo then [ "out" "debug" ] else [ "out" ];
 
         build = ''
@@ -229,7 +221,6 @@ in
           # TODO: check what's important to keep here
           inherit
             stdenv
-            includeInputs
             buildInputs
             modules
             build_dependency_info
