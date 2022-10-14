@@ -3,6 +3,8 @@ TODO: Output JSON instead of .d file
 */
 {
 stdenv,
+}:
+{
 name,
 src,
 includeInputs,

@@ -2,10 +2,7 @@
 pkgs,
 # The environment to use for the build
 stdenv ? pkgs.stdenv,
-clang-tools,
-# TODO: llvmPackages_13, rebase nixpkgs
-llvmPackages,
-llvmPackages_13 ? llvmPackages,
+c2nix,
 lib,
 sources,
 filesystem,
@@ -102,9 +99,8 @@ separateDebugInfo ? true,
     # /nix/store/something -> . ?
     rel_path = sources.getSubpath all_src;
 
-    build_dependency_info = import ./dependencyInfo.nix {
+    build_dependency_info = c2nix.dependencyInfo {
       inherit
-        stdenv
         name
         src
         includeInputs
@@ -163,13 +159,10 @@ separateDebugInfo ? true,
         }"'';
 
     # Return a derivation that compiles the given module to an object file
-    compile_module = import ./compileModule.nix {
+    compile_module = c2nix.compileModule {
       inherit
-        sources
         all_src
-        stdenv
         rel_path
-        lib
         compile_attributes
         buildInputs
         includeInputs
@@ -177,10 +170,7 @@ separateDebugInfo ? true,
         cflags
         cppflags
         all_include_dirs
-        splitStringRE
         build_dependency_info
-        clang-tools
-        llvmPackages_13
         clang_tidy_check
         clang_tidy_args
         clang_tidy_config;

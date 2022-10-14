@@ -49,6 +49,14 @@ in rec {
 
     glibc_version_symbols = glibc_version_symbols_internal "$1";
 
+    dependencyInfo = callPackage ./dependencyInfo.nix {};
+
+    compileModule = callPackage ./compileModule.nix {
+      inherit splitStringRE sources;
+      # TODO: llvmPackages_13, rebase nixpkgs
+      llvmPackages_13 = pkgs.llvmPackages;
+    };
+
     buildCPP = callPackage ./buildCPP.nix {
       inherit sources filesystem splitStringRE glibc_version_symbols_internal;
     };

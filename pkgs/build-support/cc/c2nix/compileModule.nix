@@ -1,9 +1,14 @@
 {
-  sources,
-  all_src,
   stdenv,
-  rel_path,
+  splitStringRE,
+  sources,
+  llvmPackages_13,
   lib,
+  clang-tools,
+}:
+{
+  all_src,
+  rel_path,
   compile_attributes,
   buildInputs,
   includeInputs,
@@ -11,13 +16,10 @@
   cflags,
   cppflags,
   all_include_dirs,
-  splitStringRE,
   # Input from previous step
   build_dependency_info,
 
   # For clang-tidy
-  clang-tools,
-  llvmPackages_13,
   clang_tidy_check,
   clang_tidy_args,
   clang_tidy_config,
