@@ -2,7 +2,7 @@
 
 extern "C" {
   #include "lib/name.h"
-  #include "\@# $<>.h"
+  #include "\@# $<%.h"
   #include <ncurses.h>
 }
 
