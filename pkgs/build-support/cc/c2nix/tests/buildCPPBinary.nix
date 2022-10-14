@@ -7,7 +7,7 @@ c2nix.buildCPPBinary {
   preprocessor_flags = "";
   cflags = "";
   cppflags = "";
-  link_flags = "";
+  link_flags = "-lstdc++";
   link_attributes = {
     NIX_CFLAGS_LINK = "";
   };
