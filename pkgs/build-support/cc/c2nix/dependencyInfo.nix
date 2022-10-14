@@ -41,13 +41,6 @@ let
       | # Turn lines into a JSON array \
       jq --raw-input -s 'rtrimstr("\n") | split("\n")' \
       > "$json_file"
-
-    # TODO: Maybe use -MG?
-    # -MG In conjunction with an option such as -M requesting
-    # dependency generation, -MG assumes missing header files are
-    # generated files and adds them to the dependency list without
-    # raising an error.  The dependency filename is taken directly from
-    # the "#include" directive without prepending any path.
   '';
 # Dependency information - built at instantiation time!
 in runCommandCC "${name}.depinfo" {
