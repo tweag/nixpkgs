@@ -1,4 +1,5 @@
 {
+lib,
 jq,
 writeShellScriptBin,
 runCommandCC,
@@ -6,22 +7,17 @@ runCommandCC,
 {
 name,
 src,
-all_include_dirs,
-preprocessor_flags,
+compilerFlags ? [],
 }:
 # TODO: Detect extra files in src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
 # library that this program only uses part of) so I'm not sure it's worth it.
 let
-  include_path = toString (
-    map (inc: "-I ${inc}") all_include_dirs
-  );
-
   processFile = writeShellScriptBin "process" ''
     set -euo pipefail
 
-    source_file=$1
-    shift
     result_dir=$1
+    shift
+    source_file=$1
     shift
 
     mkdir -p "$(dirname "$result_dir/$source_file")"
@@ -44,7 +40,7 @@ let
     # -M to output make rule of the files dependencies
     # -MM instead to not include system libraries, limits it to only the projects files
     # -MT to specify the make rule target string, let it be fixed because we don't need to know it
-    $COMPILER -MM -MT fixed "$source_file" "$@" \
+    $COMPILER -MM -MT fixed "$source_file" ${lib.escapeShellArgs compilerFlags} \
       | # Unescape makefile escapings \
       sed -z -f "$sedScriptPath" \
       | # Remove the first line containing "fixed:" \
@@ -86,9 +82,9 @@ in runCommandCC "${name}.depinfo" {
 
   cd ${src}
 
-  # TODO: Escaping of preprocessor_flags and include_path, both for shell and xargs
-  find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 | sort -z \
-    | xargs -0 -L1 -I{} -P "$NIX_BUILD_CORES" process {} "$results" ${preprocessor_flags} ${include_path}
+  # Recursively find all C/C++ files and process them in parallel using the process script
+  find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 \
+    | xargs -0 -L1 -P "$NIX_BUILD_CORES" process "$results"
 
   # Combine all resulting JSON files into a single one
   find "$results" -type f -print0 | xargs -0 cat | jq --slurp '.' > $out

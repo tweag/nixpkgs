@@ -95,12 +95,8 @@ separateDebugInfo ? true,
     rel_path = sources.getSubpath all_src;
 
     build_dependency_info = c2nix.dependencyInfo {
-      inherit
-        name
-        src
-        all_include_dirs
-        preprocessor_flags
-        ;
+      inherit name src;
+      compilerFlags = preprocessor_flags ++ map (inc: "-I${inc}") all_include_dirs;
     };
 
     # IFD!

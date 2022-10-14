@@ -75,7 +75,7 @@ stdenv.mkDerivation (compile_attributes // {
     mkdir -p source/${lib.escapeShellArg rel_path}
     cd source/${lib.escapeShellArg rel_path}
     ${link_module_dependencies}
-    ${if is_c then "$CC" else "$CXX"} -c ${lib.escapeShellArg name} ${preprocessor_flags} ${if is_c then cflags else cppflags} ${include_path} -o $out
+    ${if is_c then "$CC" else "$CXX"} -c ${lib.escapeShellArg name} ${lib.escapeShellArgs preprocessor_flags} ${if is_c then cflags else cppflags} ${include_path} -o $out
     '';
     # TODO: This depends on clang_tidy even when this phase isn't ran in the end
     check = ''
@@ -86,7 +86,7 @@ stdenv.mkDerivation (compile_attributes // {
     --quiet \
     ${lib.escapeShellArg name} \
     -- \
-    ${preprocessor_flags} \
+    ${lib.escapeShellArgs preprocessor_flags} \
     ${cppflags} \
     ${include_path}'';
 })

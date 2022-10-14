@@ -3,7 +3,7 @@ c2nix.buildCPPBinary {
   name = "example";
   src = ./example-project;
   buildInputs = [ ncurses ];
-  preprocessor_flags = "";
+  preprocessor_flags = [];
   cflags = "";
   cppflags = "";
   link_flags = "-lstdc++ -lncurses";
