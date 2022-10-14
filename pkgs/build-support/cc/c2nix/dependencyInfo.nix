@@ -4,6 +4,7 @@ TODO: Output JSON instead of .d file
 {
 stdenv,
 jq,
+writeShellScriptBin,
 }:
 {
 name,
@@ -17,7 +18,40 @@ let
 
   include_path = toString (
       map (inc: "-I ${inc}") all_include_dirs
-  );
+      );
+
+  processFile = writeShellScriptBin "process" ''
+    set -euo pipefail
+
+    source_file=$1
+    shift
+
+    echo "$source_file" >> $modules
+    json_file=$out/$source_file.json
+    mkdir -p "$(dirname "$out/$source_file")"
+    [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
+
+    # -M to output make rule of the files dependencies
+    # -MM instead to not include system libraries, limits it to only the projects files
+    # -MT to specify the make rule target string, let it be fixed because we don't need to know it
+    $COMPILER -MM -MT fixed "$source_file" "$@" \
+      | # Unescape makefile escapings \
+      sed -z -f "$sedScriptPath" \
+      | # Remove the first line containing "fixed:" \
+      tail -n+2 \
+      | # Sort and remove duplicates, which GCC apparently produces \
+      sort -u \
+      | # Turn lines into a JSON array \
+      jq --raw-input -s 'rtrimstr("\n") | split("\n")' \
+      > "$json_file"
+
+    # TODO: Maybe use -MG?
+    # -MG In conjunction with an option such as -M requesting
+    # dependency generation, -MG assumes missing header files are
+    # generated files and adds them to the dependency list without
+    # raising an error.  The dependency filename is taken directly from
+    # the "#include" directive without prepending any path.
+  '';
 in
 # Dependency information - built at instantiation time!
 stdenv.mkDerivation {
@@ -43,6 +77,7 @@ stdenv.mkDerivation {
 
     nativeBuildInputs = [
       jq
+      processFile
     ];
 
     sedScript = ''
@@ -61,41 +96,11 @@ stdenv.mkDerivation {
     '';
 
     build = ''
-        mkdir $out
-        cd $all_src
-        PIDS=()
-        while IFS= read -r -d $'\0' source_file; do
-            echo "$source_file" >> $modules
-            json_file=$out/$source_file.json
-            mkdir -p "$(dirname "$out/$source_file")"
-            [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
+      mkdir $out
+      cd $all_src
+      find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 | sort -z \
+        | xargs -0 -L1 -I{} -P "$NIX_BUILD_CORES" process {} ${preprocessor_flags} ${include_path}
 
-            {
-              # -M to output make rule of the files dependencies
-              # -MM instead to not include system libraries, limits it to only the projects files
-              # -MT to specify the make rule target string, let it be fixed because we don't need to know it
-              $COMPILER -MM -MT fixed ${preprocessor_flags} ${include_path} "$source_file" \
-                | # Unescape makefile escapings \
-                sed -z -f "$sedScriptPath" \
-                | # Remove the first line containing "fixed:" \
-                tail -n+2 \
-                | # Sort and remove duplicates, which GCC apparently produces \
-                sort -u \
-                | # Turn lines into a JSON array \
-                jq --raw-input -s 'rtrimstr("\n") | split("\n")' \
-                > "$json_file"
-            } &
-            # TODO: Maybe use -MG?
-            # -MG In conjunction with an option such as -M requesting
-            # dependency generation, -MG assumes missing header files are
-            # generated files and adds them to the dependency list without
-            # raising an error.  The dependency filename is taken directly from
-            # the "#include" directive without prepending any path.
-
-            PIDS+=($!)
-        done < <(find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 | sort -z)
-        # TODO: Use NIX_BUILD_CORES
-        # TODO: Fail if any background process fails
-        wait ''${PIDS[@]}
+      # TODO: Escaping of preprocessor_flags and include_path, both for shell and xargs
     '';
 }
