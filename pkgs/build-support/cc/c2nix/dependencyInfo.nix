@@ -50,9 +50,10 @@ stdenv.mkDerivation {
             [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
 
             # -M to output make rule of the files dependencies
+            # -MM to not include system libraries, limits it to only the projects files
             # -MF to specify the file to output to
             # -MT to specify the make rule target string, let it be fixed because we don't need to know it
-            $COMPILER -M -MF "$dep_file" -MT fixed ${preprocessor_flags} ${include_path} "$source_file" &
+            $COMPILER -MM -MF "$dep_file" -MT fixed ${preprocessor_flags} ${include_path} "$source_file" &
             # TODO: Maybe use -MG?
             # -MG In conjunction with an option such as -M requesting
             # dependency generation, -MG assumes missing header files are

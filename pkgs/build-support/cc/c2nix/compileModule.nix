@@ -33,9 +33,6 @@ let
         map (inc: "-I ${inc}") all_include_dirs
     );
 
-    # Return a list of relative paths to files in all_src that the given module build depends on, by reading the .d file from
-    # the dependency build and filtering the dependencies that are relative paths (as opposed to paths in the nix store)
-    # TODO: where does it even find Nix store paths?
     # TODO: At derivation build time, output a different format, e.g. JSON, so we don't need to do parsing in Nix
     get_module_source_dependencies =
     let
@@ -43,18 +40,10 @@ let
       # Undo makefile escaping and multilining. Notably newlines can't be in files (C import restriction https://stackoverflow.com/a/35977999), so we use that for the separator
       unescaped = builtins.replaceStrings [" \\\n " "$$" "%%" "\\#" "\\ " " "] ["\n" "$" "%" "#" " " "\n"] escaped;
       raw_dependencies = lib.splitString "\n" unescaped;
-      relative_paths = item:
-      let
-      match = builtins.match "([^/].*)" item;  # Match only relative paths, which require copies
-      in
-      if match == null then
-      []
-      else
-      [ (builtins.elemAt match 0) ];
     in
       # The unique seems unnecessary at least the vast majority of the time with clang's preprocessor, but we immediately found
       # a duplicated dependency when using GCC
-      lib.lists.unique (lib.lists.concatMap relative_paths raw_dependencies);
+      lib.lists.unique raw_dependencies;
 
     # The origin path (typically in the repo, outside the nix store) corresponding to the subpath, rather than the hidden true root, of all_src
     srcOrigin = sources.getOriginalFocusPath all_src;
