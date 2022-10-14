@@ -64,6 +64,7 @@ in runCommandCC "${name}.depinfo" {
 
   passAsFile = [ "sedScript" ];
 
+  # Undoes make rule escaping for a single rule, outputting all dependents on a single line
   sedScript = ''
     # `make` wraps lines with "\", adding extra spaces around it, separating entries
     s/ \\\n /\n/g
