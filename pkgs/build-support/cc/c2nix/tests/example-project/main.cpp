@@ -2,6 +2,7 @@
 
 extern "C" {
   #include "name.h"
+  #include "\@# $<>.h"
 }
 
 using namespace std;
