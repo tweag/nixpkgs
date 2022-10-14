@@ -3,11 +3,23 @@
 extern "C" {
   #include "name.h"
   #include "\@# $<>.h"
+  #include <ncurses.h>
 }
 
 using namespace std;
 int main()
 {
-  cout << "hello, " << name() << "!\n";
+  initscr();
+
+  addstr("Hello there, ");
+  addstr(name());
+  addstr("!\n\n");
+  addstr("press any key to exit...");
+  refresh();
+
+  getch();
+
+  endwin();
+
   return 0;
 }

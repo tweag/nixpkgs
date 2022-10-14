@@ -1,13 +1,13 @@
-{ c2nix }:
+{ c2nix, ncurses }:
 c2nix.buildCPPBinary {
   name = "example";
   src = ./example-project;
   buildInputs = [ ];
-  includeInputs = [ ];
+  includeInputs = [ ncurses ];
   preprocessor_flags = "";
   cflags = "";
   cppflags = "";
-  link_flags = "-lstdc++";
+  link_flags = "-lstdc++ -lncurses";
   link_attributes = {
     NIX_CFLAGS_LINK = "";
   };
