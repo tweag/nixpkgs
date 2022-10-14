@@ -42,24 +42,26 @@ stdenv.mkDerivation {
         mkdir $out
         cd $all_src
         PIDS=()
-        for source_file in $(find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print | sort); do
-            echo $source_file >> $modules
+        while IFS= read -r -d $'\0' source_file; do
+            echo "$source_file" >> $modules
             dep_file=$out/$source_file.d
             dep_dir=''${dep_file%/*}
             mkdir -p "$dep_dir"
             [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
 
-            # -M  Instead of outputting the result of
-            # preprocessing, output a rule suitable for make
-            # describing the dependencies of the main source file.
-            # The preprocessor
-            # outputs one make rule containing the object file name for
-            # that source file, a colon, and the names of all the included
-            # files, including those coming from -include or -imacros
-            # command-line options
-            $COMPILER -M ${preprocessor_flags} ${include_path} $source_file > $dep_file &
+            # -M to output make rule of the files dependencies
+            # -MF to specify the file to output to
+            # -MT to specify the make rule target string, let it be fixed because we don't need to know it
+            $COMPILER -M -MF "$dep_file" -MT fixed ${preprocessor_flags} ${include_path} "$source_file" &
+            # TODO: Maybe use -MG?
+            # -MG In conjunction with an option such as -M requesting
+            # dependency generation, -MG assumes missing header files are
+            # generated files and adds them to the dependency list without
+            # raising an error.  The dependency filename is taken directly from
+            # the "#include" directive without prepending any path.
+
             PIDS+=($!)
-        done
+        done < <(find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 | sort -z)
         # TODO: Use NIX_BUILD_CORES
         wait ''${PIDS[@]}
     '';

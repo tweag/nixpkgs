@@ -39,7 +39,10 @@ let
     # TODO: At derivation build time, output a different format, e.g. JSON, so we don't need to do parsing in Nix
     get_module_source_dependencies =
     let
-      raw_dependencies = builtins.tail (splitStringRE "[ \\\n]+" (builtins.readFile "${build_dependency_info}/${name}.d"));
+      escaped = lib.removePrefix "fixed: " (lib.fileContents (build_dependency_info + "/${name}.d"));
+      # Undo makefile escaping and multilining. Notably newlines can't be in files (C import restriction https://stackoverflow.com/a/35977999), so we use that for the separator
+      unescaped = builtins.replaceStrings [" \\\n " "$$" "%%" "\\#" "\\ " " "] ["\n" "$" "%" "#" " " "\n"] escaped;
+      raw_dependencies = lib.splitString "\n" unescaped;
       relative_paths = item:
       let
       match = builtins.match "([^/].*)" item;  # Match only relative paths, which require copies
@@ -76,7 +79,7 @@ let
     mkdir -p ${ toString dirs }
     ${
       lib.strings.concatMapStringsSep "\n" (dep:
-      "ln -s ${origin_path dep} ${dep}"
+      "ln -s ${builtins.path { path = origin_path dep; name = "source"; }} ${lib.escapeShellArg dep}"
       ) dependencies
     }
     '';
@@ -91,15 +94,15 @@ stdenv.mkDerivation (compile_attributes // {
     # The Nix compiler wrappers enable "source fortification" which is a glibc feature that is *documented* as
     # sometimes transforming correct programs into incorrect ones. We turn that off.
     hardeningDisable = [ "fortify" ];
-    name = "${builtins.baseNameOf name}.o";
+    name = lib.strings.sanitizeDerivationName "${builtins.baseNameOf name}.o";
     buildInputs = buildInputs ++ includeInputs;
     # TODO: don't hard-code phases
     phases =  ["build"] ++ (if clang_tidy_check && !is_c then ["check"] else []);
     build = ''
-    mkdir -p source/${rel_path}
-    cd source/${rel_path}
+    mkdir -p source/${lib.escapeShellArg rel_path}
+    cd source/${lib.escapeShellArg rel_path}
     ${link_module_dependencies}
-    ${if is_c then "$CC" else "$CXX"} -c ${name} ${preprocessor_flags} ${if is_c then cflags else cppflags} ${include_path} -o $out
+    ${if is_c then "$CC" else "$CXX"} -c ${lib.escapeShellArg name} ${preprocessor_flags} ${if is_c then cflags else cppflags} ${include_path} -o $out
     '';
     # TODO: This depends on clang_tidy even when this phase isn't ran in the end
     check = ''
@@ -108,7 +111,7 @@ stdenv.mkDerivation (compile_attributes // {
     ${clang_tidy_config} \
     --use-color \
     --quiet \
-    ${name} \
+    ${lib.escapeShellArg name} \
     -- \
     ${preprocessor_flags} \
     ${cppflags} \
