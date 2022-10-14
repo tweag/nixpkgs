@@ -1,7 +1,7 @@
 #include <iostream>
 
 extern "C" {
-  #include "name.h"
+  #include "lib/name.h"
   #include "\@# $<>.h"
   #include <ncurses.h>
 }
