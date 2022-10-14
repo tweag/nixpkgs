@@ -109,10 +109,8 @@ separateDebugInfo ? true,
         ;
     };
 
-    # TODO: Detect extra files in all_src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
-    # library that this program only uses part of) so I'm not sure it's worth it.
-    # TODO: If not, could this just be done in Nix without going through a derivation?
-    modules = splitStringRE "\n" (lib.strings.fileContents build_dependency_info.modules);
+    # IFD!
+    modules = lib.importJSON build_dependency_info;
 
     # TODO: this should be *a* parameter. Should it be *the* parameter?
     clang_tidy_checks = builtins.concatStringsSep "," [

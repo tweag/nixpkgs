@@ -10,6 +10,8 @@ includeInputs,
 all_include_dirs,
 preprocessor_flags,
 }:
+# TODO: Detect extra files in src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
+# library that this program only uses part of) so I'm not sure it's worth it.
 let
   include_path = toString (
     map (inc: "-I ${inc}") all_include_dirs
@@ -20,13 +22,13 @@ let
 
     source_file=$1
     shift
+    result_dir=$1
+    shift
 
-    echo "$source_file" >> $modules
-    json_file=$out/$source_file.json
-    mkdir -p "$(dirname "$out/$source_file")"
+    mkdir -p "$(dirname "$result_dir/$source_file")"
     [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
 
-    echo "Processing $source_file with $COMPILER to $json_file" >&2
+    echo "Determining file dependencies of $source_file with $COMPILER" >&2
 
     # -M to output make rule of the files dependencies
     # -MM instead to not include system libraries, limits it to only the projects files
@@ -39,20 +41,11 @@ let
       | # Sort and remove duplicates, which GCC apparently produces \
       sort -u \
       | # Turn lines into a JSON array \
-      jq --raw-input -s 'rtrimstr("\n") | split("\n")' \
-      > "$json_file"
+      jq --raw-input -s --arg path "$source_file" '{ name: $path, dependencies: rtrimstr("\n") | split("\n") }' \
+      > "$result_dir"/"$source_file.json"
   '';
 # Dependency information - built at instantiation time!
 in runCommandCC "${name}.depinfo" {
-
-  # Note: these need to be separate outputs or else using nix to read the contents of the modules
-  #  may (in nix circa 2.7) bring along the context of the dependencies of the other files
-  #  which can cause a variety of problems without helping us any.
-  # -- Lagoda (with Dave over my shoulder) 2022-03-22
-
-  # out: one dependency info file per source file, containing Make rules
-  # modules: file containing list of source files, one per line
-  outputs = ["out" "modules"];
 
   nativeBuildInputs = [
     jq
@@ -80,12 +73,15 @@ in runCommandCC "${name}.depinfo" {
     s/\$\$/$/g
   '';
 } ''
-  mkdir $out
-  touch $modules
+  results=$(mktemp -d)
 
   cd ${src}
 
   # TODO: Escaping of preprocessor_flags and include_path, both for shell and xargs
   find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 | sort -z \
-    | xargs -0 -L1 -I{} -P "$NIX_BUILD_CORES" process {} ${preprocessor_flags} ${include_path}
+    | xargs -0 -L1 -I{} -P "$NIX_BUILD_CORES" process {} "$results" ${preprocessor_flags} ${include_path}
+
+  # Combine all resulting JSON files into a single one
+  find "$results" -type f -print0 | xargs -0 cat | jq --slurp '.' > $out
+
 ''

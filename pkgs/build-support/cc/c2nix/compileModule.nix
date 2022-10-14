@@ -16,15 +16,16 @@
   cflags,
   cppflags,
   all_include_dirs,
-  # Input from previous step
-  build_dependency_info,
-
   # For clang-tidy
   clang_tidy_check,
   clang_tidy_args,
   clang_tidy_config,
 }:
-name:
+{
+name,
+# Input from previous step
+dependencies,
+}:
 let
 
     # TODO: Since we pass all include dirs to the compiler in the compilation derivations, any change to the include path requires rebuilding everything.
@@ -33,13 +34,11 @@ let
         map (inc: "-I ${inc}") all_include_dirs
     );
 
-    get_module_source_dependencies = lib.importJSON (build_dependency_info + "/${name}.json");
-
     # The origin path (typically in the repo, outside the nix store) corresponding to the subpath, rather than the hidden true root, of all_src
     srcOrigin = sources.getOriginalFocusPath all_src;
 
     # Return bash code to symlink each source dependency of the given module into a (relative) location in the current directory
-    # Dependencies on e.g. includeInputs will appear in the .d file as /nix/store paths and be filtered out by get_module_source_dependencies.
+    # Dependencies on e.g. includeInputs will appear in the .d file as /nix/store paths and be filtered out by dependencies,
     #   We don't need special handling for them - they will also be available at compile time, and if their derivations change
     #   everything will be rebuilt.
     # But we don't want a dependency on the whole `all_src` - that would prevent incremental builds. Instead we take a dependency on
@@ -47,7 +46,6 @@ let
     # This requires converting the relative path (originally in the `all_src` /nix/store path) back into an origin path.
     link_module_dependencies =
     let
-      dependencies = get_module_source_dependencies;
       origin_path = dep: srcOrigin + ("/" + dep);
       dirs = lib.lists.unique (map builtins.dirOf dependencies);
     in
