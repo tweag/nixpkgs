@@ -33,17 +33,7 @@ let
         map (inc: "-I ${inc}") all_include_dirs
     );
 
-    # TODO: At derivation build time, output a different format, e.g. JSON, so we don't need to do parsing in Nix
-    get_module_source_dependencies =
-    let
-      escaped = lib.removePrefix "fixed: " (lib.fileContents (build_dependency_info + "/${name}.d"));
-      # Undo makefile escaping and multilining. Notably newlines can't be in files (C import restriction https://stackoverflow.com/a/35977999), so we use that for the separator
-      unescaped = builtins.replaceStrings [" \\\n " "$$" "%%" "\\#" "\\ " " "] ["\n" "$" "%" "#" " " "\n"] escaped;
-      raw_dependencies = lib.splitString "\n" unescaped;
-    in
-      # The unique seems unnecessary at least the vast majority of the time with clang's preprocessor, but we immediately found
-      # a duplicated dependency when using GCC
-      lib.lists.unique raw_dependencies;
+    get_module_source_dependencies = lib.importJSON (build_dependency_info + "/${name}.json");
 
     # The origin path (typically in the repo, outside the nix store) corresponding to the subpath, rather than the hidden true root, of all_src
     srcOrigin = sources.getOriginalFocusPath all_src;
