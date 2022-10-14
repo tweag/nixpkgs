@@ -1,6 +1,3 @@
-/*
-TODO: Output JSON instead of .d file
-*/
 {
 jq,
 writeShellScriptBin,
