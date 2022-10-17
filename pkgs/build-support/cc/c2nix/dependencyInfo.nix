@@ -8,7 +8,12 @@ runCommandCC,
 name,
 src,
 compilerFlags ? [],
+cExtensions ? [ "c" ],
+cppExtensions ? [ "cpp" "cc" ],
 }:
+assert (
+  let intersection = lib.intersectLists cExtensions cppExtensions;
+  in lib.assertMsg (intersection == []) "c2nix.dependencyInfo: File extensions ${lib.head intersection} cannot be in both cExtensions and cppExtensions.");
 # TODO: Detect extra files in src that aren't a dependency of any module? These aren't too surprising (e.g. an include directory for a
 # library that this program only uses part of) so I'm not sure it's worth it.
 let
@@ -20,8 +25,23 @@ let
     source_file=$1
     shift
 
+    # Remove longest prefix matching "*.", resulting in everything after the
+    # last dot
+    extension=''${source_file##*.}
+
+    case "$extension" in
+    ${lib.concatMapStringsSep " | " lib.escapeShellArg cExtensions})
+      COMPILER=$CC
+      ;;
+    ${lib.concatMapStringsSep " | " lib.escapeShellArg cppExtensions})
+      COMPILER=$CXX
+      ;;
+    *)
+      echo "Skipping non-source file $source_file" >&2
+      exit 0
+    esac
+
     mkdir -p "$(dirname "$result_dir/$source_file")"
-    [[ $source_file =~ .*\.c$ ]] && COMPILER=$CC || COMPILER=$CXX
 
     echo "Determining file dependencies of $source_file with $COMPILER" >&2
 
@@ -53,7 +73,7 @@ let
   '';
 
 # Dependency information - built at instantiation time!
-in runCommandCC "${name}.depinfo" {
+in runCommandCC "${name}-depinfo.json" {
 
   nativeBuildInputs = [
     jq
@@ -82,11 +102,13 @@ in runCommandCC "${name}.depinfo" {
 
   cd ${src}
 
-  # Recursively find all C/C++ files and process them in parallel using the process script
-  find -L . -type f \( -name '*.c' -or -name '*.cpp' -or -name '*.cc' \) -print0 \
+  # Recursively find all files and process them in parallel using the process script
+  find -L . -type f -print0 \
     | xargs -0 -L1 -P "$NIX_BUILD_CORES" process "$results"
 
   # Combine all resulting JSON files into a single one
-  find "$results" -type f -print0 | xargs -0 cat | jq --slurp '.' > $out
+  find "$results" -type f -print0 \
+    | xargs -0 cat \
+    | jq --slurp '.' > $out
 
 ''
