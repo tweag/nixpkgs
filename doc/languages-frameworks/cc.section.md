@@ -7,7 +7,7 @@ To build C or C++ projects with special requirements, the following tools are av
 
 ## c2nix {#c2nix}
 
-### `buildCPPBinary`
+### `buildCPPBinary` {#c2nix-buildCPPBinary}
 
 Build a C or C++ binary.
 
@@ -94,7 +94,7 @@ Build a C or C++ binary.
 
 : Additional attributes to pass to the underlying `stdenv.mkDerivation` when compiling each module.
 
-### `buildCPPStaticLibrary`
+### `buildCPPStaticLibrary` {#c2nix-buildCPPStaticLibrary}
 
 Build a C or C++ statically linked library.
 
@@ -158,17 +158,13 @@ Build a C or C++ statically linked library.
 
 : Flags to pass to the C++ compiler. Mutually exclusive with `cflags`.
 
-`link_flags`
-
-: Flags to pass to the linker.
-
 `compile_attributes` _(attribute set)_
 
 : Additional attributes to pass to the underlying `stdenv.mkDerivation` when compiling each module.
 
 [version script]: https://www.gnu.org/software/gnulib/manual/html_node/LD-Version-Scripts.html
 
-### `buildCPPSharedLibrary`
+### `buildCPPSharedLibrary` {#c2nix-buildCPPSharedLibrary}
 
 Build a C or C++ shared library.
 

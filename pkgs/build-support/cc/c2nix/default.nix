@@ -7,7 +7,15 @@ TODO:
   - Final linking step in buildCPP
   - Top-level functions for buildCPPBinary, buildCPPStaticLibrary, buildCPPSharedLibrary
 - [ ] Document the code and interface
-  - [ ] Document all parameters for all functions
+  - [ ] Document all parameters for all functions (markdown)
+    - [ ] dependencyInfo
+    - [ ] compileModule
+    - [ ] buildCPP
+    - [x] buildCPPBinary
+    - [x] buildCPPSharedLibrary
+    - [x] buildCPPStaticLibrary
+  - [ ] stopgap until we have coherent rendering of code comments:
+        copy-paste markdown documentation into code comments
 - [ ] Improve the readibility of the code
 - [ ] Improve the workings of the code
 - [ ] Write tests
@@ -42,6 +50,7 @@ TODO:
 in rec {
   inherit sources;
 
+  # TODO: does this have to be exported?
   glibc_version_symbols = glibc_version_symbols_internal "$1";
 
   dependencyInfo = callPackage ./dependencyInfo.nix {};
@@ -56,23 +65,19 @@ in rec {
     inherit sources filesystem splitStringRE glibc_version_symbols_internal;
   };
 
+  /*
+  Parameters documented in
+
+    /languages-frameworks/cc.section.md#c2nix-buildCPPBinary
+
+  */
   buildCPPBinary = {
     name,
-    # Source and/or include files, in the correct relative relationship.
-    # Automatically filtered for only .c, .cpp, .cc, .h, and .hpp files.
-    # The build takes place in the focus directory of src, so any flags that refer to paths are relative to that directory.
     src,
-    # Include files from the same repo as src.  Automatically filtered for only .h and .hpp files and combined with src.
-    # The focus directory of each top-level entry in this array is made an include directory with `-I`.  (`reparent` if this is undesired)
     includeSrc ? [],
-    # The environment to use for the build
     stdenv ? pkgs.stdenv,
-    # Derivations that are dependencies of the build (currently, both compile and link steps)
     buildInputs,
-    # This sets the loader to use the default FHS location and checks that no "too new" glibc version is required.
-    # Useful for when you want to build software that will run on non-NixOS systems.
     make_redistributable ? false,
-    # If true, runs the `clang-tidy` linter on all source files alongside compilation.
     clang_tidy_check ? false,
     preprocessor_flags,
     cflags,
@@ -93,20 +98,18 @@ in rec {
       # TODO: this will always build `separateDebugInfo` using the default in `buildCPP` - is this intended?
     };
 
+  /*
+  Parameters documented in
+
+    /languages-frameworks/cc.section.md#c2nix-buildCPPStaticLibrary
+
+  */
   buildCPPStaticLibrary = {
     name,
-    # Source and/or include files, in the correct relative relationship.
-    # Automatically filtered for only .c, .cpp, .cc, .h, and .hpp files.
-    # The build takes place in the focus directory of src, so any flags that refer to paths are relative to that directory.
     src,
-    # Include files from the same repo as src.  Automatically filtered for only .h and .hpp files and combined with src.
-    # The focus directory of each top-level entry in this array is made an include directory with `-I`.  (`reparent` if this is undesired)
     includeSrc ? [],
-    # The environment to use for the build
     stdenv ? pkgs.stdenv,
-    # Derivations that are dependencies of the build (currently, both compile and link steps)
     buildInputs,
-    # If true, runs the `clang-tidy` linter on all source files alongside compilation.
     clang_tidy_check ? false,
     preprocessor_flags,
     cflags,
@@ -126,24 +129,20 @@ in rec {
       glibc_version_check = false;
     };
 
+  /*
+  Parameters documented in
+
+    /languages-frameworks/cc.section.md#c2nix-buildCPPSharedLibrary
+
+  */
   buildCPPSharedLibrary = {
     name,
-    # Source and/or include files, in the correct relative relationship.
-    # Automatically filtered for only .c, .cpp, .cc, .h, and .hpp files.
-    # The build takes place in the focus directory of src, so any flags that refer to paths are relative to that directory.
     src,
-    # Include files from the same repo as src.  Automatically filtered for only .h and .hpp files and combined with src.
-    # The focus directory of each top-level entry in this array is made an include directory with `-I`.  (`reparent` if this is undesired)
     includeSrc ? [],
-    # The environment to use for the build
     stdenv ? pkgs.stdenv,
-    # Derivations that are dependencies of the build (currently, both compile and link steps)
     buildInputs,
-    # This enables the check that no "too new" glibc version is required
     make_redistributable ? true,
-    # This checks that no C++ standard library symbols are publicly exposed
     symbol_leakage_check ? true,
-    # If true, runs the `clang-tidy` linter on all source files alongside compilation.
     clang_tidy_check ? false,
     preprocessor_flags,
     cflags,
