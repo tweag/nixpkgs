@@ -17,8 +17,6 @@
   # Include files from the same repo as src.  Automatically filtered for only .h and .hpp files and combined with src.
   # The focus directory of each top-level entry in this array is made an include directory with `-I`.  (`reparent` if this is undesired)
   includeSrc ? [],
-  # Relative to the source root
-  include_dirs ? ["."],
   # Derivations that are dependencies of the build (currently, both compile and link steps)
   buildInputs,
   # Subdirectory of $out and/or $debug to place artifacts in (e.g. "bin" or "lib")
@@ -34,6 +32,7 @@
   glibc_version_check ? false,
   # If 'glibc_version_check' is set, we will enforce that all glibc version symbols are older than this version.
   #TODO Should we combine this and the above `glibc_version_check` parameter?
+  # TODO: this version seems quite arbitrary - can we at least document a reason for it, otherwise tie it to something more high-level?
   max_glibc_version ? "2.18.0",
   # If true, runs the `clang-tidy` linter on all source files alongside compilation.
   clang_tidy_check ? false,
@@ -183,7 +182,7 @@ in
       '';
 
       check = ''
-        true # TODO: check if t
+        true # TODO: check if this is necessary
         ${
           if symbol_leakage_check
           then ''
