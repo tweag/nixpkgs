@@ -10,7 +10,7 @@ TODO:
   - [ ] Document all parameters for all functions (markdown)
     - [x] dependencyInfo
     - [ ] compileModule
-    - [ ] buildCPP
+    - [x] buildCPP
     - [x] buildCPPBinary
     - [x] buildCPPSharedLibrary
     - [x] buildCPPStaticLibrary

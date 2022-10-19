@@ -76,11 +76,11 @@ Build a C or C++ binary.
 
 `cflags` _(list of strings)_
 
-: Flags to pass to the C compiler. Mutually exclusive with `cppflags`.
+: Flags to pass to the C compiler. Will only be used for files with the `.c` extension.
 
 `cppflags` _(list of strings)_
 
-: Flags to pass to the C++ compiler. Mutually exclusive with `cflags`.
+: Flags to pass to the C++ compiler. Will be used for files other than with the `.c` extension.
 
 `link_flags`
 

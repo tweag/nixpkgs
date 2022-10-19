@@ -98,20 +98,50 @@ Build a C or C++ project
 
   # Run the `clang-tidy` linter on all source files alongside compilation.
   clang_tidy_check ? false,
+
   # Flags to pass to the C or C++ preprocessor.
   #
   # Type:
   #   [String]
   preprocessor_flags,
-  # Flags to pass to the C compiler. Mutually exclusive with `cppflags`.
+
+  # Flags to pass to the C compiler. Will only be used for files with the `.c` extension.
+  #
+  # Type:
+  #   [String]
   cflags,
-  # Flags to pass to the C++ compiler. Mutually exclusive with `cflags`.
+
+  # Flags to pass to the C++ compiler. Will be used for files other than with the `.c` extension.
+  #
+  # Type:
+  #   [String]
   cppflags,
+  # Command to use to link object files.
+  #
+  # Type:
+  #   String
+  #
+  # Example:
+  #   "$CC -v -o $out/bin/${name}"
   link_command,
+
+  # Flags to pass to the linker.
+  #
+  # Type:
+  #   [String]
+
   link_flags,
+
+  # Additional attributes to pass to the underlying `stdenv.mkDerivation` when linking compiled modules.
   link_attributes,
+
+  # Additional attributes to pass to the underlying `stdenv.mkDerivation` when compiling each module.
   compile_attributes,
-  # TODO: is this intended?
+
+  # Build an additional `debug` derivation output. See [](#stdenv-separateDebugInfo).
+  #
+  # [version script]: https://www.gnu.org/software/gnulib/manual/html_node/LD-Version-Scripts.html
+  # TODO: is this default intended?
   separateDebugInfo ? true,
 }: let
   # Assemble a single nix store path with all of the source and includes for the entire build.
