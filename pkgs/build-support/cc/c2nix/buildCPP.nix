@@ -8,36 +8,104 @@
   filesystem,
   splitStringRE,
   glibc_version_symbols_internal,
-}: {
+}:
+/*
+Build a C or C++ project
+*/
+{
+  # Package name
+
+  # Type:
+  #   String
   name,
-  # Source and/or include files, in the correct relative relationship.
-  # Automatically filtered for only .c, .cpp, .cc, .h, and .hpp files.
-  # The build takes place in the focus directory of src, so any flags that refer to paths are relative to that directory.
+
+  # Directory with source or header files, in the correct relative relationship.
+  #
+  # Any flags (from `*_flags` attributes) that refer to paths will be taken as relative to that directory.
+  #
+  # Only the following file types are considered:
+  #
+  # - `.c`
+  # - `.cpp`
+  # - `.cc`
+  # - `.h`
+  # - `.hpp`
+  #
+  # Type:
+  #   Path
   src,
-  # Include files from the same repo as src.  Automatically filtered for only .h and .hpp files and combined with src.
-  # The focus directory of each top-level entry in this array is made an include directory with `-I`.  (`reparent` if this is undesired)
+
+  # Directories with header files within the `src` directory.
+  #
+  # Only the following file types are considered:
+  #
+  # - `.h`
+  # - `.hpp`
+  #
+  # Each entry in this list is made an include directory with `-I`.
+  #
+  # Type:
+  #   [Path]
   includeSrc ? [],
-  # Derivations that are dependencies of the build (currently, both compile and link steps)
+
+  # Derivations that are dependencies of the build.
+  # Currently, these are used for both compile and link steps.
+  #
+  # Type:
+  #   [Derivation]
   buildInputs,
-  # Subdirectory of $out and/or $debug to place artifacts in (e.g. "bin" or "lib")
+
+  # Subdirectory of `$out` or `$debug` to place build build artifacts
+  #
+  # Type:
+  #   String
+  #
+  # Example:
+  #   "bin"
+  #
+  # Example:
+  #   "lib"
   outputDir,
+
   # Basename of the final output artifact
+  #
+  # Type:
+  #   String
+  #
+  # Example:
+  #   "lib{name}.a"
   artifactName,
-  # Sets the loader to the default location used on FHS systems, so that the resulting binary can run on non-NixOS systems.
+
+  # Build the package such that it will run on systems without Nix.
+  #
+  # This will set the [loader] to use the default [FHS] location and check that the required `glibc` version is not "to new".
+  #
+  # [loader]: https://en.m.wikipedia.org/wiki/Dynamic_loading
+  # [FHS]: https://en.m.wikipedia.org/wiki/Filesystem_Hierarchy_Standard
   make_fhs_compatible ? false,
-  # Checks that the final artifact does not publicly expose any C++ mangled symbol names (this is useful if you're trying to build
-  # a shared library written in C++, but exposing a pure C interface).
+
+  # Check that the final artifact does not publicly expose any C++ mangled symbol names.
+  # This is useful if you're trying to build a shared library written in C++ which exposes a pure C interface.
   symbol_leakage_check ? false,
-  # Checks that none of the dependencies of the final artifact pull in glibc version symbols later than `max_glibc_version`.
+
+  # Check that none of the dependencies of the final artifact require `glibc` version symbols later than `max_glibc_version`.
   glibc_version_check ? false,
-  # If 'glibc_version_check' is set, we will enforce that all glibc version symbols are older than this version.
-  #TODO Should we combine this and the above `glibc_version_check` parameter?
-  # TODO: this version seems quite arbitrary - can we at least document a reason for it, otherwise tie it to something more high-level?
+
+  # If 'glibc_version_check` is set, enforce that all `glibc` version symbols are older than this version.
+  # TODO: Should we combine this and the above `glibc_version_check` parameter?
+  # TODO: This version seems quite arbitrary - can we at least document a reason for it, otherwise tie it to something more high-level?
   max_glibc_version ? "2.18.0",
-  # If true, runs the `clang-tidy` linter on all source files alongside compilation.
+
+  # Run the `clang-tidy` linter on all source files alongside compilation.
   clang_tidy_check ? false,
+  # Flags to pass to the C or C++ preprocessor.
+  #
+  # Type:
+  #   [String]
   preprocessor_flags,
+  # Flags to pass to the C compiler. Mutually exclusive with `cppflags`.
   cflags,
+  # Flags to pass to the C++ compiler. Mutually exclusive with `cflags`.
   cppflags,
   link_command,
   link_flags,
@@ -46,8 +114,8 @@
   # TODO: is this intended?
   separateDebugInfo ? true,
 }: let
-  # Assemble a single nix store path with all of the source and includes for the entire build. build_dependency_info will depend
-  #   on it, but individual compile steps will not (since it will change whenever anything changes)
+  # Assemble a single nix store path with all of the source and includes for the entire build.
+  # `build_dependency_info` will depend on it, but although we pass it to `compile_module`, individual compile steps will not.
   all_src = with sources;
     setName (name + "-source")
     (extend
