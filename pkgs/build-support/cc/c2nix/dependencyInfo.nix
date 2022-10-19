@@ -9,23 +9,26 @@ Produce a JSON file describing dependencies between C or C++ source files within
 
 Example:
 
+In the following directory `source`, the files `main.cpp` and `lib/util.c` both include `lib/util.h`.
+
 ```shellSession
-tree src
+tree source
 ```
 
-    src
+    source
     ├── lib
     │   ├── util.c
     │   └── util.h
     └── main.cpp
 
 
+Calling `pkgs.c2nix.dependencyInfo` with the arguments `name` for the package name (here: `example`) and `src` for an absolute path to the source directory (here: `$PWD/source`) produces a JSON file as the build result.
+
 ```shellSession
-nix-build <nixpkgs> -A pkgs.c2nix.dependencyInfo --argstr name example --argsr src $PWD/src
+nix-build <nixpkgs> -A pkgs.c2nix.dependencyInfo --argstr name example --argsr src $PWD/source
 ```
 
     /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
-
 
 ```shellSession
 cat /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
@@ -46,6 +49,22 @@ cat /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
         ]
       }
     ]
+
+Example:
+
+When the result of `dependencyInfo` is used directly in the Nix language, this constitutes "Import From Derivation":
+the derivation producing the JSON file has to be built before evaluation can continue.
+
+```nix
+let
+  pkgs = import <nixpkgs> {};
+  dependencies = pkgs.c2nix.dependencyInfo { name = "example"; src = ./source; };
+in
+# Import From Derivation!
+pkgs.lib.importJSON dependencies
+```
+
+    [ { dependencies = [ "lib/util.c" ]; name = "./lib/util.c"; } { dependencies = [ "lib/util.h" "main.cpp" ]; name = "./main.cpp"; } ]
 
 */
 {
