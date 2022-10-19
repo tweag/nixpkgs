@@ -201,10 +201,12 @@ Build a C or C++ project
         ]
     }"'';
 
-  # Return a derivation that compiles the given module to an object file
-  compile_module = c2nix.compileModule {
+  object_files = builtins.map ({name, dependencies}: c2nix.compileModule {
     inherit
+      name
+      # TODO: `all_src`, `dependencies`, and `rel_path` should be processed beforehand and the result passed as `src`
       all_src
+      dependencies
       rel_path
       compile_attributes
       buildInputs
@@ -215,10 +217,9 @@ Build a C or C++ project
       clang_tidy_check
       clang_tidy_args
       clang_tidy_config
-      ;
-  };
+    ;
+  }) modules;
 
-  object_files = builtins.map compile_module modules;
 in
   stdenv.mkDerivation (link_attributes
     // {
@@ -313,11 +314,10 @@ in
           includeSrc
           all_src
           all_include_dirs
+          # TODO: why do we pass through functions?
           # get_module_source_dependencies
-          
           # link_module_dependencies
-          
-          compile_module
+          # compile_module
           object_files
           ;
       };

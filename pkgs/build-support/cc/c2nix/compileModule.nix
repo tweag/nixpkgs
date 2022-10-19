@@ -4,8 +4,15 @@
   llvmPackages_13,
   lib,
   clang-tools,
-}: {
+}:
+/*
+Return a derivation that compiles a single C or C++ object file
+*/
+{
+  name,
+  # TODO: `all_src`, `dependencies`, and `rel_path` should be processed beforehand and the result passed as `src`
   all_src,
+  dependencies,
   rel_path,
   compile_attributes,
   buildInputs,
@@ -17,42 +24,63 @@
   clang_tidy_check,
   clang_tidy_args,
   clang_tidy_config,
-}: {
-  name,
-  # Input from previous step
-  dependencies,
-}: let
+}:
+let
   # TODO: Since we pass all include dirs to the compiler in the compilation derivations, any change to the include path requires rebuilding everything.
   # TODO: Filter only the include directories required for each module
   include_path = toString (
     map (inc: "-I ${inc}") all_include_dirs
   );
 
-  # The origin path (typically in the repo, outside the nix store) corresponding to the subpath, rather than the hidden true root, of all_src
-  srcOrigin = sources.getOriginalFocusPath all_src;
+  /*
+  Create a copy of each original source file in the Nix store, and
+  symlink it to its corresponding relative location in the current directory.
+  NOTE: This is what enables incremental builds with file-level granularity.
 
-  # Return bash code to symlink each source dependency of the given module into a (relative) location in the current directory
-  # But we don't want a dependency on the whole `all_src` - that would prevent incremental builds. Instead we take a dependency on
-  #   the relevant individual source files by (symbolic) linking them into the current directory in the compile step.
-  # This requires converting the relative path (originally in the `all_src` /nix/store path) back into an origin path.
-  link_module_dependencies = let
-    origin_path = dep: srcOrigin + ("/" + dep);
-    dirs = lib.lists.unique (map builtins.dirOf dependencies);
-  in
+  TODO: This produces bash code right now.
+  Instead, the source filtering should be factored out entirely, to produce a single store path.
+  If we use e.g. `symlinkJoin`, there is no need to symlink things in the build script.
+  */
+  link_module_dependencies =
+  {
+    # Name of source file to compile
+    #
+    # Type:
+    #   Path
+    #
+    # Example:
+    #   "main.cpp"
+    name,
+
+    # Dependencies of the source file to compile, including itself, as produced by `c2nix.compileModule`
+    #
+    # Example
+    #   [ "main.cpp" "lib/utils.h" ]
+    #
+    # Type:
+    #   [String]
+    dependencies,
+  }:
     if (builtins.length dependencies) == 0
-    then throw "Module ${name}: no source dependencies detected!" # This is almost certainly a bug, since it must at least depend on its own source file
+    # This is almost certainly a bug, since it must at least depend on its own source file
+    then throw "Module ${name}: no source dependencies detected!"
     else ''
-      mkdir -p ${toString dirs}
+      mkdir -p ${toString (lib.lists.unique (map builtins.dirOf dependencies))}
       ${
         lib.strings.concatMapStringsSep "\n" (
           dep: "ln -s ${builtins.path {
-            path = origin_path dep;
+            # We don't want a dependency on the whole `all_src` - that would prevent incremental builds.
+            # Therefore use the relative path to `dep`, but within the original `src` directory.
+            # That is typically part of the source repository, and *not* in the Nix store.
+            # Referencing the original source will create another, separate copy of `dep` in the Nix store.
+            path = sources.getOriginalFocusPath all_src + ("/" + dep);
             name = "source";
           }} ${lib.escapeShellArg dep}"
         )
         dependencies
       }
     '';
+
   # We need to tell clang-tidy to use use headers from libc++ instead of GCC's stdc++ that Nix inexplicably defaults to.
   clang_tools_with_libcxx =
     clang-tools.overrideAttrs
@@ -65,6 +93,7 @@ in
       # The Nix compiler wrappers enable "source fortification" which is a glibc feature that is *documented* as
       # sometimes transforming correct programs into incorrect ones. We turn that off.
       hardeningDisable = ["fortify"];
+      # the `.o` suffix is required for C/C++ compilers to run the linker
       name = lib.strings.sanitizeDerivationName "${builtins.baseNameOf name}.o";
       buildInputs = buildInputs;
       # TODO: don't hard-code phases
@@ -78,7 +107,7 @@ in
       build = ''
         mkdir -p source/${lib.escapeShellArg rel_path}
         cd source/${lib.escapeShellArg rel_path}
-        ${link_module_dependencies}
+        ${link_module_dependencies { inherit name dependencies; }}
         ${
           if is_c
           then "$CC"

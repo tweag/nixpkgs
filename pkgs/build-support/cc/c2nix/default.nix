@@ -56,7 +56,7 @@ in rec {
   dependencyInfo = callPackage ./dependencyInfo.nix {};
 
   compileModule = callPackage ./compileModule.nix {
-    inherit splitStringRE sources;
+    inherit sources;
     # TODO: llvmPackages_13, rebase nixpkgs
     llvmPackages_13 = pkgs.llvmPackages;
   };
