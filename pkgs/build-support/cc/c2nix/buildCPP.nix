@@ -6,7 +6,6 @@
   lib,
   sources,
   filesystem,
-  splitStringRE,
   glibc_version_symbols_internal,
 }:
 /*
@@ -338,7 +337,6 @@ in
           modules
           build_dependency_info
           pkgs
-          splitStringRE
           getRelativePathFrom
           src
           includeSrc

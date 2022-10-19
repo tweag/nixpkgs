@@ -34,13 +34,6 @@ TODO:
 
   lib = pkgs.lib;
 
-  # srsly?  lib.splitString dies with "stack overflow" on long-ish lists
-  splitStringRE = delim_re: original: let
-    splits = builtins.split delim_re original;
-    len = builtins.div (builtins.add 1 (builtins.length splits)) 2;
-  in
-    builtins.genList (i: builtins.elemAt splits (i * 2)) len;
-
   # Use `pkgs.binutils-unwrapped` because LLVM's objdump doesn't correctly handle glibc's versioned symbols
   # The syntax "if SYMS=$(<commands that could have a non-0 exit code>); then echo ...."
   #  is present because grep, if "GLIBC" is not found, will return 1 and therefore cannot be used directly
@@ -62,7 +55,7 @@ in rec {
   };
 
   buildCPP = callPackage ./buildCPP.nix {
-    inherit sources filesystem splitStringRE glibc_version_symbols_internal;
+    inherit sources filesystem glibc_version_symbols_internal;
   };
 
   /*
