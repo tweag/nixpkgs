@@ -8,14 +8,14 @@ TODO:
   - Top-level functions for buildCPPBinary, buildCPPStaticLibrary, buildCPPSharedLibrary
 - [ ] Document the code and interface
   - [ ] Document all parameters for all functions (markdown)
-    - [ ] dependencyInfo
+    - [x] dependencyInfo
     - [ ] compileModule
     - [ ] buildCPP
     - [x] buildCPPBinary
     - [x] buildCPPSharedLibrary
     - [x] buildCPPStaticLibrary
   - [ ] stopgap until we have coherent rendering of code comments:
-        copy-paste markdown documentation into code comments
+        duplicate documentation between manual section and code comments
 - [ ] Improve the readibility of the code
 - [ ] Improve the workings of the code
 - [ ] Write tests
