@@ -73,6 +73,8 @@ c2nix.buildCPP {
 
 Implementation note: `buildCPP` needs to use the `pkgs.granularSource.lib` functions with `src` to make use of the additional granularity.
 
+TODO: Add a way to validate the hashes.
+
 ## (internal) `pkgs.granularSource._path args`
 
 Like [`builtins.path`](https://nixos.org/manual/nix/stable/language/builtins.html?highlight=builtins.path#builtins-path), but for derivation paths.
