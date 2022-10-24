@@ -1,13 +1,13 @@
 # Granular build-time sources
 
-Support for file-level granular sources. Like `builtins.path` with filter support but at build-time.
+Support for file-level granular sources. Like [`lib.sources`](https://nixos.org/manual/nixpkgs/stable/#sec-functions-library-sources) for build-time sources.
 
 ## Use cases
 
 - Build-time source filtering without duplicating files in the Nix store
 - fetchIndividualFromGitHub?, useful for e.g. nerdfonts
 - Patching can be very cheap, essentially [lazy trees](https://github.com/NixOS/nix/pull/6530) but at build time
-- Patch a build without having to rebuild everything. `pkgs.individualFiles.patch`?
+- Patch a build without having to rebuild everything. `pkgs.granularSource.patch`?
 - Overriding with just `src = some/local/source` should not do a rebuild if the version matches, but also only minimal rebuilds if you change a file!
 
 ## `pkgs.granularSource.pin args`
