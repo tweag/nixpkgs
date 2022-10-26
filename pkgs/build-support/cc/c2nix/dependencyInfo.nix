@@ -53,6 +53,7 @@ cat /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
 Example:
 
 When the result of `dependencyInfo` is used directly in the Nix language, this constitutes "Import From Derivation":
+<!-- TODO: link to an authoritative definition and explanation of IFD -->
 the derivation producing the JSON file has to be built before evaluation can continue.
 
 ```nix

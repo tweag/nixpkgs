@@ -37,9 +37,7 @@ let
   symlink it to its corresponding relative location in the current directory.
   NOTE: This is what enables incremental builds with file-level granularity.
 
-  TODO: This produces bash code right now.
-  Instead, the source filtering should be factored out entirely, to produce a single store path.
-  If we use e.g. `symlinkJoin`, there is no need to symlink things in the build script.
+  TODO: This produces bash code right now. Maybe this should be a build hook?
   */
   link_module_dependencies =
   {
