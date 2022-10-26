@@ -52,7 +52,7 @@ let
     fetchers = callLibs ./fetchers.nix;
 
     # Anything relating to file paths
-    paths = callLibs ./paths.nix;
+    path = callLibs ./path.nix;
     filesystem = callLibs ./filesystem.nix;
     sources = callLibs ./sources.nix;
 
