@@ -58,7 +58,49 @@ let
     # Type:
     #   [String]
     dependencies,
+    src,
   }:
+
+
+  # nativeBuildInputs = [ someSetupHook ];
+  # someSetupHookArg = 10
+
+  /*
+  Requirements for ideal nixpkgs upstreamedness:
+  - Incremental, changing one file doesn't require everything to be recompiled
+  - (optional) No IFD, nixpkgs hydra
+
+  For use in nixpkgs itself, needs to work with things like:
+    src = fetchFromGitHub {
+    };
+  To make that work (without IFD), we need:
+  - A JSON file committed to nixpkgs containing the C dependency info (for Nix to create the static derivation graph)
+  - A JSON file committed to nixpkgs containing all file hashes (granularSource proposal)
+
+  fixed-output derivation for a single file, depending on fetchFromGitHub for the entire repository
+
+  builtins.path
+  pkgs.granularSource._path
+  pkgs.granularSource._pathSymlinks { ... }
+
+  pkgs.fixedOutputDerivationForSpecificFile { jsonFile = ...; src = ...; subpath = "foo/bar"; }
+
+  fixedOutputDeriationFromJSON.path {
+    filter = ...;
+  }
+
+  lib.sources
+  TODO: Write down why we'd decide to write an alternative builtins.path so we
+  can change the underlying primitive lib.sources uses, therefore reusing all
+  of lib.sources for eval time and build time
+
+  Ask client: Do you want this JSON pinning build-time granular sources thing
+  to be reusable for any other incremental build tooling for other languages
+  (in nixpkgs or elsewhere), or for now just local to c2nix
+
+  TODO: Make a draft PR for granular source proposal
+  */
+
     if (builtins.length dependencies) == 0
     # This is almost certainly a bug, since it must at least depend on its own source file
     then throw "Module ${name}: no source dependencies detected!"
@@ -71,7 +113,7 @@ let
             # Therefore use the relative path to `dep`, but within the original `src` directory.
             # That is typically part of the source repository, and *not* in the Nix store.
             # Referencing the original source will create another, separate copy of `dep` in the Nix store.
-            path = sources.getOriginalFocusPath all_src + ("/" + dep);
+            path = src + ("/" + dep);
             name = "source";
           }} ${lib.escapeShellArg dep}"
         )
@@ -96,16 +138,18 @@ in
       buildInputs = buildInputs;
       # TODO: don't hard-code phases
       phases =
-        ["build"]
+        [ "configurePhase" "build"]
         ++ (
           if clang_tidy_check && !is_c
           then ["check"]
           else []
         );
-      build = ''
+      configurePhase = ''
         mkdir -p source/${lib.escapeShellArg rel_path}
         cd source/${lib.escapeShellArg rel_path}
-        ${link_module_dependencies { inherit name dependencies; }}
+        ${link_module_dependencies { inherit name dependencies; src = sources.getOriginalFocusPath all_src; }}
+      '';
+      build = ''
         ${
           if is_c
           then "$CC"

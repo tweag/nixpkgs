@@ -16,7 +16,7 @@ Pins the files of a derivation by writing the hashes and types of all files to a
 The resulting file is suitable to be passed to `pkgs.granularSource.create`, either as a derivation (which then leads to IFD, disallowed in nixpkgs), or as a file path when copied locally.
 
 Arguments:
-- `src`: The derivation whose files to pin.
+- `src`: The derivation whose files to pin. # Why not a eval-time path? Because for those, we don't need such a result
 - `hashAlgo`: The hashing algorithm to use, either `sha256` or `sha512`.
 
 Returns a derivation for a JSON file with the following format:
@@ -24,21 +24,24 @@ Returns a derivation for a JSON file with the following format:
 {
   "treeHashes": {
     "<someFile>": {
-      "type": "file",
-      "hash": "sha256-1rCVS1wK2D9lL22rbmdE6Wg2PwXRZxgFw8CVqnw3txM="
+      "file": {
+        "hash": "sha256-1rCVS1wK2D9lL22rbmdE6Wg2PwXRZxgFw8CVqnw3txM="
+      }
     },
     "<someDir>": {
-      "type": "directory",
-      "entries": {
-        "<someNestedFile>": {
-          "type": "file",
-          "hash": "sha256-5rAeSHaY8qfcdxHvb9XWZCYX35hYBssalFbZiYjoJV0="
+      "directory": {
+        "entries": {
+          "<someNestedFile>": {
+            "type": "file",
+            "hash": "sha256-5rAeSHaY8qfcdxHvb9XWZCYX35hYBssalFbZiYjoJV0="
+          }
         }
       }
     },
     "<someSymlink>": {
-      "type": "symlink",
-      "target": "<somePath>"
+      "symlink": {
+        "target": "<somePath>"
+      }
     }
   }
 }
@@ -97,6 +100,8 @@ Implementation note: This function needs to implement validation of the hashes.
 
 Like `pkgs.granularSource._path`, but it creates symlinks to the original source instead of copying the files.
 
+TODO: Somehow export the result as a bash script doing the symlinking
+
 ## `pkgs.granularSource.lib`
 
 Same functions as `lib.sources` but acting on granular build-time sources created using `pkgs.granularSource.create`.
@@ -107,7 +112,15 @@ Implementation note: Allow `lib.sources` to be generic over the `builtins.path` 
 
 These functions are from my proposal in [the source combinators PR](https://github.com/NixOS/nixpkgs/pull/112083#pullrequestreview-1137855532), these would be useful to get individual files from the granular source.
 
+builtins.path {
+  path = all_src + "/subpath;
+}
 
+lib.sources.limitToSubpath (setSubpath "/subpath.c" all_src)
+# Uses builtins.path underneath -> eval time path reading
+
+lib.sources.limitToSubpath (setSubpath "/subpath.c" all_src)
+# Uses builtins.path underneath -> eval time path reading
 
 
 
