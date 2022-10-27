@@ -1,6 +1,5 @@
 {
   stdenv,
-  sources,
   llvmPackages_13,
   lib,
   clang-tools,
@@ -16,7 +15,6 @@ Return a derivation that compiles a single C or C++ object file
   preprocessor_flags,
   cflags,
   cppflags,
-  all_include_dirs,
   # For clang-tidy
   clang_tidy_check,
   clang_tidy_args,
@@ -25,9 +23,9 @@ Return a derivation that compiles a single C or C++ object file
 let
   # TODO: Since we pass all include dirs to the compiler in the compilation derivations, any change to the include path requires rebuilding everything.
   # TODO: Filter only the include directories required for each module
-  include_path = toString (
-    map (inc: "-I ${inc}") all_include_dirs
-  );
+  #include_path = toString (
+  #  map (inc: "-I ${inc}") all_include_dirs
+  #);
 
   # We need to tell clang-tidy to use use headers from libc++ instead of GCC's stdc++ that Nix inexplicably defaults to.
   clang_tools_with_libcxx =
@@ -68,7 +66,7 @@ in
           if is_c
           then cflags
           else cppflags
-        } ${include_path} -o $out
+        } -o $out
       '';
       # TODO: This depends on clang_tidy even when this phase isn't ran in the end
       check = ''
@@ -81,5 +79,5 @@ in
         -- \
         ${lib.escapeShellArgs preprocessor_flags} \
         ${cppflags} \
-        ${include_path}'';
+        '';
     })

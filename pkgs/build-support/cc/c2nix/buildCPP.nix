@@ -4,8 +4,6 @@
   stdenv ? pkgs.stdenv,
   c2nix,
   lib,
-  sources,
-  filesystem,
   glibc_version_symbols_internal,
 }:
 /*
@@ -33,19 +31,6 @@ Build a C or C++ project
   # Type:
   #   Path
   src,
-
-  # Directories with header files within the `src` directory.
-  #
-  # Only the following file types are considered:
-  #
-  # - `.h`
-  # - `.hpp`
-  #
-  # Each entry in this list is made an include directory with `-I`.
-  #
-  # Type:
-  #   [Path]
-  includeSrc ? [],
 
   # Derivations that are dependencies of the build.
   # Currently, these are used for both compile and link steps.
@@ -145,42 +130,14 @@ Build a C or C++ project
 }: let
   # Assemble a single nix store path with all of the source and includes for the entire build.
   # `build_dependency_info` will depend on it, but although we pass it to `compile_module`, individual compile steps will not.
-  all_src = with sources;
-    setName (name + "-source")
-    (extend
-      (sourceFilesBySuffices src [".c" ".cpp" ".h" ".hpp" ".cc" ".cxx"])
-      # TODO: Why not .hxx above? Configurable?
-      (map (s: sourceFilesBySuffices s [".h" ".hpp" ".hxx"]) includeSrc));
-
-  # Returns a relative path such that path == src + (getRelativePathFrom src path)
-  # throws an error (via absolutePathComponentsBetween) if the *root* of path is not a prefix of src,
-  #   but getRelativePathFrom will generate ../ components if they are already siblings in the same root
-  #   (e.g. because src has already been extended with path)
-  getRelativePathFrom = src: path: let
-    clean_src = sources.cleanSourceWith {src = src;};
-    clean_path = sources.cleanSourceWith {src = path;};
-    relative_to_root = (filesystem.absolutePathComponentsBetween clean_src.origSrc clean_path.origSrc) ++ clean_path.subpath;
-    get_relative = a: b:
-      if a != [] && b != [] && builtins.head a == builtins.head b
-      then get_relative (builtins.tail a) (builtins.tail b)
-      else (map (_: "..") a) ++ b;
-    relative_to_src = get_relative clean_src.subpath relative_to_root;
-  in
-    if relative_to_src != []
-    then (lib.concatStringsSep "/" relative_to_src)
-    else ".";
-
-  all_include_dirs =
-    lib.lists.unique
-    (map (getRelativePathFrom all_src) includeSrc); # /nix/store/foo/bar/baz -> ../../foo/bar/baz
-
-  # TODO: is this a no-op?
-  # /nix/store/something -> . ?
-  rel_path = sources.getSubpath all_src;
+  all_src = lib.sources.cleanSourceWith {
+    name = "source";
+    src = lib.sources.sourceFilesBySuffices src [".c" ".cpp" ".h" ".hpp" ".cc" ".cxx"];
+  };
 
   build_dependency_info = c2nix.internal.dependencyInfo {
     inherit name src;
-    compilerFlags = preprocessor_flags ++ map (inc: "-I${inc}") all_include_dirs;
+    compilerFlags = preprocessor_flags;
   };
 
   # IFD!
@@ -243,7 +200,6 @@ Build a C or C++ project
         preprocessor_flags
         cflags
         cppflags
-        all_include_dirs
         clang_tidy_check
         clang_tidy_args
         clang_tidy_config
@@ -339,11 +295,8 @@ in
           sources
           build_dependency_info
           pkgs
-          getRelativePathFrom
           src
-          includeSrc
           all_src
-          all_include_dirs
           # TODO: why do we pass through functions?
           # get_module_source_dependencies
           # link_module_dependencies

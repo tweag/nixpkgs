@@ -28,10 +28,8 @@ TODO:
   callPackages,
   # TODO drop this when it's in nixpkgs main
   lib,
-  sourcesLib ? lib,
-  # sourcesLib ? (import ./pinned_nixpkgs.nix).sources
+  makeSetupHook,
 }: let
-  inherit (sourcesLib) sources filesystem;
 
   lib = pkgs.lib;
 
@@ -48,13 +46,12 @@ in rec {
   glibc_version_symbols = glibc_version_symbols_internal "$1";
 
   compileModule = callPackage ./compileModule.nix {
-    inherit sources;
     # TODO: llvmPackages_13, rebase nixpkgs
     llvmPackages_13 = pkgs.llvmPackages;
   };
 
   buildCPP = callPackage ./buildCPP.nix {
-    inherit sources filesystem glibc_version_symbols_internal;
+    inherit glibc_version_symbols_internal;
   };
 
   /*
@@ -66,7 +63,7 @@ in rec {
   buildCPPBinary = {
     name,
     src,
-    includeSrc ? [],
+    # includeSrc ? [],
     stdenv ? pkgs.stdenv,
     buildInputs,
     make_redistributable ? false,
@@ -79,7 +76,7 @@ in rec {
     compile_attributes ? {},
   }:
     buildCPP {
-      inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
+      inherit name src buildInputs preprocessor_flags cflags cppflags compile_attributes link_attributes clang_tidy_check;
       make_fhs_compatible = make_redistributable;
       glibc_version_check = make_redistributable;
       outputDir = "bin";
@@ -99,7 +96,7 @@ in rec {
   buildCPPStaticLibrary = {
     name,
     src,
-    includeSrc ? [],
+    # includeSrc ? [],
     stdenv ? pkgs.stdenv,
     buildInputs,
     clang_tidy_check ? false,
@@ -109,7 +106,7 @@ in rec {
     compile_attributes ? {},
   }:
     buildCPP rec {
-      inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
+      inherit name src buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check;
       outputDir = "lib";
       artifactName = "lib${name}.a";
       separateDebugInfo = false;
@@ -130,7 +127,7 @@ in rec {
   buildCPPSharedLibrary = {
     name,
     src,
-    includeSrc ? [],
+    # includeSrc ? [],
     stdenv ? pkgs.stdenv,
     buildInputs,
     make_redistributable ? true,
@@ -146,7 +143,7 @@ in rec {
     separateDebugInfo ? true,
   }:
     buildCPP {
-      inherit name src includeSrc buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
+      inherit name src buildInputs preprocessor_flags cflags cppflags compile_attributes clang_tidy_check link_attributes symbol_leakage_check separateDebugInfo;
       make_fhs_compatible = false;
       glibc_version_check = make_redistributable;
       outputDir = "lib";
