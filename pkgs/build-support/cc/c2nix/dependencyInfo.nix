@@ -34,18 +34,21 @@ nix-build <nixpkgs> -A pkgs.c2nix.dependencyInfo --argstr name example --argsr s
 cat /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
 ```
 
-    {
-      "version": 2,
-      "dependencies": {
-        "./lib/util.c": [
+    [
+      {
+        "name": "./lib/util.c",
+        "dependencies": [
           "lib/util.c"
-        ],
-        "./main.cpp": [
+        ]
+      },
+      {
+        "name": "./main.cpp",
+        "dependencies": [
           "lib/util.h",
           "main.cpp"
         ]
       }
-    }
+    ]
 
 Example:
 
@@ -63,12 +66,6 @@ pkgs.lib.importJSON dependencies
 ```
 
     [ { dependencies = [ "lib/util.c" ]; name = "./lib/util.c"; } { dependencies = [ "lib/util.h" "main.cpp" ]; name = "./main.cpp"; } ]
-
-
-TODO: Example like this:
-nix-build -E 'dependencyInfo { ... }'
-cp result dependency-info.json
-nix-build -E 'buildCPP { dependencyInfo = ./dependency-info.json; }' # Not IFD anymore
 
 */
 {
@@ -188,5 +185,3 @@ assert (
         | xargs -0 cat \
         | jq --slurp '.' > $out
     ''
-
-
