@@ -178,13 +178,16 @@ Build a C or C++ project
   # /nix/store/something -> . ?
   rel_path = sources.getSubpath all_src;
 
-  build_dependency_info = c2nix.dependencyInfo {
+  build_dependency_info = c2nix.internal.dependencyInfo {
     inherit name src;
     compilerFlags = preprocessor_flags ++ map (inc: "-I${inc}") all_include_dirs;
   };
 
   # IFD!
-  modules = lib.importJSON build_dependency_info;
+  sources = c2nix.internal.sourcesForFiles {
+    src = src;
+    dependencyInfo = build_dependency_info;
+  };
 
   # TODO: this should be *a* parameter. Should it be *the* parameter?
   clang_tidy_checks = builtins.concatStringsSep "," [
@@ -230,24 +233,23 @@ Build a C or C++ project
         ]
     }"'';
 
-  object_files = builtins.map ({name, dependencies}: c2nix.compileModule {
-    inherit
-      name
-      # TODO: `all_src`, `dependencies`, and `rel_path` should be processed beforehand and the result passed as `src`
-      all_src
-      dependencies
-      rel_path
-      compile_attributes
-      buildInputs
-      preprocessor_flags
-      cflags
-      cppflags
-      all_include_dirs
-      clang_tidy_check
-      clang_tidy_args
-      clang_tidy_config
-    ;
-  }) modules;
+  object_files = lib.mapAttrs (name: sourceScript:
+    c2nix.compileModule {
+      inherit
+        name
+        sourceScript
+        compile_attributes
+        buildInputs
+        preprocessor_flags
+        cflags
+        cppflags
+        all_include_dirs
+        clang_tidy_check
+        clang_tidy_args
+        clang_tidy_config
+        ;
+    }
+  ) sources;
 
 in
   stdenv.mkDerivation (link_attributes
@@ -270,13 +272,13 @@ in
       build = ''
         # TODO: Escaping..?
         # TODO: Don't use toString on lists, implicit concatenation with " "
-        echo -e "${link_command} ${toString object_files} ${link_flags}"
+        echo -e "${link_command} ${toString (lib.attrValues object_files)} ${link_flags}"
         mkdir -p $out/$outputDir ${
           if separateDebugInfo
           then "$debug/$outputDir"
           else ""
         }
-        ${link_command} ${toString object_files} ${link_flags}
+        ${link_command} ${toString (lib.attrValues object_files)} ${link_flags}
       '';
 
       check = ''
@@ -334,7 +336,7 @@ in
         inherit
           stdenv
           buildInputs
-          modules
+          sources
           build_dependency_info
           pkgs
           getRelativePathFrom

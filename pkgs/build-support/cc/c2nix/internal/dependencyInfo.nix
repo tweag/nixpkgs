@@ -34,21 +34,17 @@ nix-build <nixpkgs> -A pkgs.c2nix.dependencyInfo --argstr name example --argsr s
 cat /nix/store/y1m9xhvissgjvzkzjxmrqg7cmmpr5qbh-example-depinfo.json
 ```
 
-    [
-      {
-        "name": "./lib/util.c",
-        "dependencies": [
+    {
+      "dependencies": {
+        "./lib/util.c": [
           "lib/util.c"
-        ]
-      },
-      {
-        "name": "./main.cpp",
-        "dependencies": [
+        ],
+        "./main.cpp": [
           "lib/util.h",
           "main.cpp"
         ]
       }
-    ]
+    }
 
 Example:
 
@@ -66,6 +62,12 @@ pkgs.lib.importJSON dependencies
 ```
 
     [ { dependencies = [ "lib/util.c" ]; name = "./lib/util.c"; } { dependencies = [ "lib/util.h" "main.cpp" ]; name = "./main.cpp"; } ]
+
+
+TODO: Example like this:
+nix-build -E 'dependencyInfo { ... }'
+cp result dependency-info.json
+nix-build -E 'buildCPP { dependencyInfo = ./dependency-info.json; }' # Not IFD anymore
 
 */
 {
@@ -143,7 +145,7 @@ assert (
         | # Sort and remove duplicates, which GCC apparently produces \
         sort -u \
         | # Turn lines into a JSON array \
-        jq --raw-input -s --arg path "$source_file" '{ name: $path, dependencies: rtrimstr("\n") | split("\n") }' \
+        jq --raw-input -s --arg path "$source_file" '{ key: $path, value: rtrimstr("\n") | split("\n") }' \
         > "$result_dir"/"$source_file.json"
     '';
   in
@@ -183,5 +185,5 @@ assert (
       # Combine all resulting JSON files into a single one
       find "$results" -type f -print0 \
         | xargs -0 cat \
-        | jq --slurp '.' > $out
+        | jq --slurp '{ dependencies: . | from_entries }' > $out
     ''

@@ -10,10 +10,7 @@ Return a derivation that compiles a single C or C++ object file
 */
 {
   name,
-  # TODO: `all_src`, `dependencies`, and `rel_path` should be processed beforehand and the result passed as `src`
-  all_src,
-  dependencies,
-  rel_path,
+  sourceScript,
   compile_attributes,
   buildInputs,
   preprocessor_flags,
@@ -32,53 +29,6 @@ let
     map (inc: "-I ${inc}") all_include_dirs
   );
 
-  /*
-  Create a copy of each original source file in the Nix store, and
-  symlink it to its corresponding relative location in the current directory.
-  NOTE: This is what enables incremental builds with file-level granularity.
-
-  TODO: This produces bash code right now. Maybe this should be a build hook?
-  */
-  link_module_dependencies =
-  {
-    # Name of source file to compile
-    #
-    # Type:
-    #   Path
-    #
-    # Example:
-    #   "main.cpp"
-    name,
-
-    # Dependencies of the source file to compile, including itself, as produced by `c2nix.compileModule`
-    #
-    # Example
-    #   [ "main.cpp" "lib/utils.h" ]
-    #
-    # Type:
-    #   [String]
-    dependencies,
-  }:
-    if (builtins.length dependencies) == 0
-    # This is almost certainly a bug, since it must at least depend on its own source file
-    then throw "Module ${name}: no source dependencies detected!"
-    else ''
-      mkdir -p ${toString (lib.lists.unique (map builtins.dirOf dependencies))}
-      ${
-        lib.strings.concatMapStringsSep "\n" (
-          dep: "ln -s ${builtins.path {
-            # We don't want a dependency on the whole `all_src` - that would prevent incremental builds.
-            # Therefore use the relative path to `dep`, but within the original `src` directory.
-            # That is typically part of the source repository, and *not* in the Nix store.
-            # Referencing the original source will create another, separate copy of `dep` in the Nix store.
-            path = sources.getOriginalFocusPath all_src + ("/" + dep);
-            name = "source";
-          }} ${lib.escapeShellArg dep}"
-        )
-        dependencies
-      }
-    '';
-
   # We need to tell clang-tidy to use use headers from libc++ instead of GCC's stdc++ that Nix inexplicably defaults to.
   clang_tools_with_libcxx =
     clang-tools.overrideAttrs
@@ -96,16 +46,20 @@ in
       buildInputs = buildInputs;
       # TODO: don't hard-code phases
       phases =
-        ["build"]
+        [ "unpackPhase" "build"]
         ++ (
           if clang_tidy_check && !is_c
           then ["check"]
           else []
-        );
+      );
+
+      unpackPhase = ''
+        mkdir source
+        cd source
+        ${sourceScript}
+      '';
+
       build = ''
-        mkdir -p source/${lib.escapeShellArg rel_path}
-        cd source/${lib.escapeShellArg rel_path}
-        ${link_module_dependencies { inherit name dependencies; }}
         ${
           if is_c
           then "$CC"

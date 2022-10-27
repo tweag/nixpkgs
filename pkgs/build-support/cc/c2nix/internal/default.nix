@@ -1,5 +1,4 @@
-{callPackage}: {
+{ callPackage }: {
   dependencyInfo = callPackage ./dependencyInfo.nix {};
   sourcesForFiles = callPackage ./sourcesForFiles.nix {};
-  buildCPPBinary = callPackage ./buildCPPBinary.nix {};
 }

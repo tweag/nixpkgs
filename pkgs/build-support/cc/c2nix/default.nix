@@ -25,6 +25,7 @@ TODO:
 {
   pkgs,
   callPackage,
+  callPackages,
   # TODO drop this when it's in nixpkgs main
   lib,
   sourcesLib ? lib,
@@ -41,12 +42,10 @@ TODO:
     if SYMS=$(${pkgs.binutils-unwrapped}/bin/objdump -T "${binary_name}" | ${pkgs.gawk}/bin/awk '{print $5}' | ${pkgs.gnugrep}/bin/grep GLIBC | ${pkgs.gnused}/bin/sed 's/ *$//g' | ${pkgs.gnused}/bin/sed 's/GLIBC_//' | sort | uniq); then echo "$SYMS" ; else echo ; fi
   '';
 in rec {
-  inherit sources;
+  internal = callPackages ./internal {};
 
   # TODO: does this have to be exported?
   glibc_version_symbols = glibc_version_symbols_internal "$1";
-
-  dependencyInfo = callPackage ./dependencyInfo.nix {};
 
   compileModule = callPackage ./compileModule.nix {
     inherit sources;
