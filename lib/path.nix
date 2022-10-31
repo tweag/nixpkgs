@@ -1,9 +1,4 @@
-# Functions for working with file paths, without reading from those paths. Both
-# paths (e.g. `/foo/bar`) and strings (e.g. `"/foo/bar"`) are accepted data
-# types, though generally strings are returned.
-#
-# Why is this path library restricted from reading paths?
-# Inspecting paths using Nix happens at eval-time, but we don't know what kind of path we have, could also be build-time or runtime
+# Functions for working with file paths
 { lib }:
 let
   inherit (builtins)
@@ -38,35 +33,7 @@ in /* No rec! Add dependencies on this file just above */ {
 
   isAbsolute = path: lib.strings.hasPrefix "/" (toString path);
 
-  /*
-  Handle:
-  - Path and string Nix data types
-  - Absolute and relative paths (only string data type)
-  - Multiple "/" in a row get turned into a single one
-    - Question: Should we have a primitive for turning a path into components instead?
-    - Also look at: https://doc.rust-lang.org/std/path/struct.PathBuf.html#method.components
-  - Removes unnecessary dots like "/./"
-  - TODO: Persist trailing slashes or not?
-    - Nix doesn't even allow them in the path data type
-    - Check other languages (TODO: Link to documentation / arguments)
-      - Rust doesn't persist them when normalizing path strings
-      - Python doesn't preserve them
-      - Haskell does preserve them
-    - Check with the Nix community
-    - Design minimal path API interface, add examples, let people add edge/test cases
-  - Only allows ".."'s at the beginning, so "foo/.." is disallowed and throws an error. Why?
-    - Because nobody needs "foo/.."
-    - Weird things happen if symlinks are involved
-    - Operations like pathHasPrefix don't reliably work anymore without reading symlinks
-    - There's no way to resolve symlinks in Nix eval-time paths
-    - In addition, this path library is not allowed to interact with the filesystem at all, see the top for motivation
-
-  TODO: Should paths be an internal attribute set structure? We can do a lot more things then:
-  - Eventual windows path support
-  - Reasonably tracking trailing slashes
-  - Reasonably tracking absolute vs relative paths
-  - Makes it faster in some cases maybe?
-  */
+  # TODO: Update with ./path-design.md
   normalizePath = path:
     # Explain why everything is done the way it is
     let
@@ -93,23 +60,6 @@ in /* No rec! Add dependencies on this file just above */ {
         else if hasEndingSlash then "./"
         else "."
       else result;
-
-  # TODO: How to design this path library, look at other path library implementations
-  # lib.path.isParentOf
-  # commonAncestor
-  # relativePathComponentsBetween
-  # lib.path.join
-
-  /* Normalize path, removing extranous /s
-
-     Type: normalizePath :: string -> string
-
-     Example:
-       normalizePath "/a//b///c/"
-       => "/a/b/c/"
-  */
-  #normalizePath = pathLike: toString (/. + pathLike);
-  # normalizePath = s: (builtins.foldl' (x: y: if y == "/" && hasSuffix "/" x then x else x+y) "" (stringToCharacters s));
 
   /* Check whether a value is a store path.
 
