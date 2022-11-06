@@ -9,7 +9,21 @@ To build C or C++ projects with special requirements, the following tools are av
 
 `c2nix` allows incremental builds of C or C++ projects with file granularity.
 
-It breaks down the source tree `src` into files, each of which is separately copied to the Nix store.
+It works as follows:
+
+1. Break down the given source tree into a compilation unit for each object file
+1. Copy each source file to the Nix store separately
+1. Build each object file in a separate derivation
+1. Link object files
+
+When source files change, since each is now a distinct dependency tracked by Nix, only affected derivations will be rebuilt.
+The space and build time savings from this method come at the cost of increased evaluation time.
+
+Producing a dependency graph of the source files can be done automatically, but requires Import From Derivation in that case.
+This is because the analysis step happens in a derivation that produces a file from which to generate the derivations for each object file.
+
+To avoid Import From Derivation, that file can be pre-generated and used like a regular build dependency.
+Note though that it has to be re-generated each time the dependency structure changes.
 
 ### `pkgs.buildCPPBinary` {#c2nix-buildCPPBinary}
 
