@@ -2,7 +2,7 @@
   c2nix,
   ncurses,
 }:
-c2nix.internal.dependencyInfo {
+c2nix.dependencyInfo {
   name = "example";
   src = ./example-project;
 }

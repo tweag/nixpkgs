@@ -8,8 +8,10 @@
 Return a derivation that compiles a single C or C++ object file
 */
 {
+  # File name
   name,
-  sourceScript,
+  # Shell commands to link all required source files into the build directory
+  linkSourceFiles,
   compile_attributes,
   buildInputs,
   preprocessor_flags,
@@ -54,7 +56,7 @@ in
       unpackPhase = ''
         mkdir source
         cd source
-        ${sourceScript}
+        ${linkSourceFiles}
       '';
 
       build = ''

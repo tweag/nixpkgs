@@ -7,6 +7,10 @@ To build C or C++ projects with special requirements, the following tools are av
 
 ## c2nix {#c2nix}
 
+`c2nix` allows incremental builds of C or C++ projects with file granularity.
+
+It breaks down the source tree `src` into files, each of which is separately copied to the Nix store.
+
 ### `pkgs.buildCPPBinary` {#c2nix-buildCPPBinary}
 
 Build a C or C++ binary.
@@ -31,16 +35,14 @@ Build a C or C++ binary.
   - `.h`
   - `.hpp`
 
-`includeSrc` _(list of paths)_
+`dependencyInfo` _(path)_
 
-: Directories with header files within the `src` directory.
+: Path to JSON file with dependency information, as produced by `c2nix.dependencyInfo`.
 
-  Only the following file types are considered:
+  This file is generated automatically using Import From Derivation if the argument is unset.
+  To avoid Import From Derivation, pre-generate the file with `c2nix.dependencyInfo`.
 
-  - `.h`
-  - `.hpp`
-
-  Each entry in this list is made an include directory with `-I`.
+    *Default:* `null`
 
 `stdenv` _(attribute set)_
 
@@ -118,16 +120,14 @@ Build a C or C++ statically linked library.
   - `.h`
   - `.hpp`
 
-`includeSrc` _(list of paths)_
+`dependencyInfo` _(path)_
 
-: Directories with header files within the `src` directory.
+: Path to JSON file with dependency information, as produced by `c2nix.dependencyInfo`.
 
-  Only the following file types are considered:
+  This file is generated automatically using Import From Derivation if the argument is unset.
+  To avoid Import From Derivation, pre-generate the file with `c2nix.dependencyInfo`.
 
-  - `.h`
-  - `.hpp`
-
-  Each entry in this list is made an include directory with `-I`.
+    *Default:* `null`
 
 `stdenv` _(attribute set)_
 
@@ -188,16 +188,14 @@ Build a C or C++ shared library.
   - `.h`
   - `.hpp`
 
-`includeSrc` _(list of paths)_
+`dependencyInfo` _(path)_
 
-: Directories with header files within the `src` directory.
+: Path to JSON file with dependency information, as produced by `c2nix.dependencyInfo`.
 
-  Only the following file types are considered:
+  This file is generated automatically using Import From Derivation if the argument is unset.
+  To avoid Import From Derivation, pre-generate the file with `c2nix.dependencyInfo`.
 
-  - `.h`
-  - `.hpp`
-
-  Each entry in this list is made an include directory with `-I`.
+    *Default:* `null`
 
 `stdenv` _(attribute set)_
 

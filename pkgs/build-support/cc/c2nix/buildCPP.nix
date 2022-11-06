@@ -4,6 +4,7 @@
   stdenv ? pkgs.stdenv,
   c2nix,
   lib,
+  # TODO: why do we need that here?
   glibc_version_symbols_internal,
 }:
 /*
@@ -32,6 +33,12 @@ Build a C or C++ project
   #   Path
   src,
 
+  # Path to JSON file with dependency information, as produced by `c2nix.dependencyInfo`.
+  #
+  # This file is generated automatically using Import From Derivation if the argument is unset.
+  # To avoid Import From Derivation, pre-generate the file with `c2nix.dependencyInfo`.
+  dependencyInfo ? null,
+
   # Derivations that are dependencies of the build.
   # Currently, these are used for both compile and link steps.
   #
@@ -39,7 +46,7 @@ Build a C or C++ project
   #   [Derivation]
   buildInputs,
 
-  # Subdirectory of `$out` or `$debug` to place build build artifacts
+  # Subdirectory of `$out` or `$debug` to place build artifacts in
   #
   # Type:
   #   String
@@ -128,23 +135,34 @@ Build a C or C++ project
   # TODO: is this default intended?
   separateDebugInfo ? true,
 }: let
-  # Assemble a single nix store path with all of the source and includes for the entire build.
-  # `build_dependency_info` will depend on it, but although we pass it to `compile_module`, individual compile steps will not.
-  all_src = lib.sources.cleanSourceWith {
-    name = "source";
-    src = lib.sources.sourceFilesBySuffices src [".c" ".cpp" ".h" ".hpp" ".cc" ".cxx"];
+
+  sourceFiles = c2nix.splitSourceTree {
+    inherit src;
+    dependencyInfo = if dependencyInfo != null then dependencyInfo else
+      # Import From Derivation!
+      c2nix.dependencyInfo {
+        inherit name src;
+        compilerFlags = preprocessor_flags;
+      };
   };
 
-  build_dependency_info = c2nix.internal.dependencyInfo {
-    inherit name src;
-    compilerFlags = preprocessor_flags;
-  };
+  objectFiles = lib.mapAttrs (name: linkSourceFiles:
+    c2nix.compileModule {
+      inherit
+        name
+        linkSourceFiles
+        compile_attributes
+        buildInputs
+        preprocessor_flags
+        cflags
+        cppflags
+        clang_tidy_check
+        clang_tidy_args
+        clang_tidy_config
+        ;
+    }
+  ) sourceFiles;
 
-  # IFD!
-  sources = c2nix.internal.sourcesForFiles {
-    src = src;
-    dependencyInfo = build_dependency_info;
-  };
 
   # TODO: this should be *a* parameter. Should it be *the* parameter?
   clang_tidy_checks = builtins.concatStringsSep "," [
@@ -179,7 +197,9 @@ Build a C or C++ project
     "performance-unnecessary-value-param"
     "readability-redundant-member-init"
   ];
+
   clang_tidy_args = "-checks='${clang_tidy_checks}' -warnings-as-errors='${clang_tidy_checks}'";
+
   clang_tidy_config = builtins.replaceStrings ["\n"] [" "] ''
     -config="{
         CheckOptions: [
@@ -189,24 +209,6 @@ Build a C or C++ project
             }
         ]
     }"'';
-
-  object_files = lib.mapAttrs (name: sourceScript:
-    c2nix.compileModule {
-      inherit
-        name
-        sourceScript
-        compile_attributes
-        buildInputs
-        preprocessor_flags
-        cflags
-        cppflags
-        clang_tidy_check
-        clang_tidy_args
-        clang_tidy_config
-        ;
-    }
-  ) sources;
-
 in
   stdenv.mkDerivation (link_attributes
     // {
@@ -228,13 +230,13 @@ in
       build = ''
         # TODO: Escaping..?
         # TODO: Don't use toString on lists, implicit concatenation with " "
-        echo -e "${link_command} ${toString (lib.attrValues object_files)} ${link_flags}"
+        echo -e "${link_command} ${toString (lib.attrValues objectFiles)} ${link_flags}"
         mkdir -p $out/$outputDir ${
           if separateDebugInfo
           then "$debug/$outputDir"
           else ""
         }
-        ${link_command} ${toString (lib.attrValues object_files)} ${link_flags}
+        ${link_command} ${toString (lib.attrValues objectFiles)} ${link_flags}
       '';
 
       check = ''
@@ -292,16 +294,10 @@ in
         inherit
           stdenv
           buildInputs
-          sources
-          build_dependency_info
+          dependencyInfo
           pkgs
           src
-          all_src
-          # TODO: why do we pass through functions?
-          # get_module_source_dependencies
-          # link_module_dependencies
-          # compile_module
-          object_files
+          objectFiles
           ;
       };
     })

@@ -40,22 +40,18 @@ TODO:
     if SYMS=$(${pkgs.binutils-unwrapped}/bin/objdump -T "${binary_name}" | ${pkgs.gawk}/bin/awk '{print $5}' | ${pkgs.gnugrep}/bin/grep GLIBC | ${pkgs.gnused}/bin/sed 's/ *$//g' | ${pkgs.gnused}/bin/sed 's/GLIBC_//' | sort | uniq); then echo "$SYMS" ; else echo ; fi
   '';
 in rec {
-  internal = callPackages ./internal {};
 
   # TODO: does this have to be exported?
   glibc_version_symbols = glibc_version_symbols_internal "$1";
 
+  # TODO (@fricklerhandwerk): this should not be exported
   compileModule = callPackage ./compileModule.nix {
     # TODO: llvmPackages_13, rebase nixpkgs
     llvmPackages_13 = pkgs.llvmPackages;
   };
 
-  buildCPP = callPackage ./buildCPP.nix {
-    inherit glibc_version_symbols_internal;
-  };
-
   /*
-  Parameters documented in
+  TODO: Parameters documented in
 
     /languages-frameworks/cc.section.md#c2nix-buildCPPBinary
 
@@ -88,7 +84,7 @@ in rec {
     };
 
   /*
-  Parameters documented in
+  TODO: Parameters documented in
 
     /languages-frameworks/cc.section.md#c2nix-buildCPPStaticLibrary
 
@@ -119,7 +115,7 @@ in rec {
     };
 
   /*
-  Parameters documented in
+  TODO: Parameters documented in
 
     /languages-frameworks/cc.section.md#c2nix-buildCPPSharedLibrary
 
@@ -158,4 +154,14 @@ in rec {
           else ""
         );
     };
+
+  # TODO (@fricklerhandwerk): figure out how to render documentation for the following
+
+  dependencyInfo = callPackage ./dependencyInfo.nix {};
+
+  splitSourceTree = callPackage ./splitSourceTree.nix {};
+
+  buildCPP = callPackage ./buildCPP.nix {
+    inherit glibc_version_symbols_internal;
+  };
 }

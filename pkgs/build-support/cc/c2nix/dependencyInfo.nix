@@ -5,7 +5,14 @@
   runCommandCC,
 }:
 /*
-Produce a JSON file describing dependencies between C or C++ source files within the given `src` directory.
+Determine dependencies of C or C++ source files within the given `src` directory as a JSON file of the form:
+
+```json
+{
+"dependencies":
+  "<filename>": [ "<filename>", "<dependency>", "<dependency>", "..." ]
+}
+```
 
 Example:
 
