@@ -8,13 +8,9 @@ let
 
   inherit (lib.strings)
     hasSuffix
-    stringToCharacters
     concatStringsSep
     isCoercibleToString
     substring
-    splitString
-    optionalString
-    removePrefix
     ;
 
   inherit (lib.lists)
@@ -23,12 +19,8 @@ let
     last
     head
     length
-    sublist
-    init
     genList
     elemAt
-    all
-    tail
     concatMap
     imap0
     ;
@@ -37,9 +29,7 @@ let
     makeSearchPath
     makeSearchPathOutput
     split
-    join
     isAbsolute
-    isRelative
     ;
 in /* No rec! Add dependencies on this file just above */ {
 
