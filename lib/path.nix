@@ -47,7 +47,9 @@ in /* No rec! Add dependencies on this file just above */ {
 
   isRelative = path: ! isAbsolute path;
 
-  normalise = path: join (split path);
+  normalise = path:
+    # Just like join (split path), but removing the unnecessary bits
+    replaceStrings [ "//" ] [ "/" ] (concatStringsSep "/" (split path));
 
   join = components:
     let
