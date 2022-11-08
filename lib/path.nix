@@ -36,6 +36,7 @@ let
     makeSearchPath
     makeSearchPathOutput
     split
+    join
     isAbsolute
     isRelative
     ;
@@ -44,6 +45,8 @@ in /* No rec! Add dependencies on this file just above */ {
   isAbsolute = path: lib.strings.hasPrefix "/" (toString path);
 
   isRelative = path: ! isAbsolute path;
+
+  normalise = path: join (split path);
 
   join = components:
     let
