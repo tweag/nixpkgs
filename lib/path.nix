@@ -3,6 +3,7 @@
 let
   inherit (builtins)
     storeDir
+    replaceStrings
     ;
 
   inherit (lib.strings)
@@ -74,10 +75,11 @@ in /* No rec! Add dependencies on this file just above */ {
 
       # With normalisedComponents having an initial "/" entry for absolute
       # paths, the above concatenation makes the result end up having "//" at
-      # the beginning. We need to remove an extra "/", but only if it's
-      # absolute, in which case it also starts with a "/", so we can just use
-      # `removePrefix` for this
-      result = removePrefix "/" joined;
+      # the beginning. Except when there's only a single "/" component, in
+      # which case we end up with just "/". An efficient way to fix this is to
+      # just replace "//" with "/" in the entire string, which is okay because
+      # a "//" can only occur in the beginning (split normalises its results)
+      result = replaceStrings [ "//" ] [ "/" ] joined;
 
     in result;
 
