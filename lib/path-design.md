@@ -165,7 +165,7 @@ Examples:
 - `split "/" == ["/"]`
 - `split "/foo" == ["/" "foo"]`
 - `split "." == []`
-- `split "bar" == ["foo"]`
+- `split "bar" == ["bar"]`
 
 Invariants:
 - Inverse of `join`:

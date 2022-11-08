@@ -23,6 +23,8 @@ let
     length
     sublist
     init
+    genList
+    elemAt
     ;
 
   inherit (lib.paths)
@@ -33,33 +35,67 @@ in /* No rec! Add dependencies on this file just above */ {
 
   isAbsolute = path: lib.strings.hasPrefix "/" (toString path);
 
-  # TODO: Update with ./path-design.md
-  normalizePath = path:
-    # Explain why everything is done the way it is
-    let
-      allComponents = splitString "/" path;
-      hasLeadingSlash = head allComponents == "";
-      start = if hasLeadingSlash then 1 else 0;
-      hasEndingSlash = last allComponents == "";
-      end = length allComponents - (if hasEndingSlash then 1 else 0);
-      middleComponents = sublist start (end - start) allComponents;
+  split = path:
+  let
+    # Split the string into its parts using regex for efficiency. This regex
+    # matches patterns like "/", "/./", "/././", with arbitrarily many "/"s
+    # together. These are the main special cases:
+    # - Leading "./" or "/" get split into a leading "." or "" part
+    #   respectively
+    # - Trailing "/." or "/" get split into a trailing "." or ""
+    #   part respectively
+    #
+    # These are the only cases where "." and "" parts can occur
+    parts = builtins.split "/+(\\./+)*" (toString path);
 
-      withoutDuplicateSlashesAndDots = filter (el: el != "" && el != ".") middleComponents;
-      withoutDotDots = lib.foldl' (acc: el:
-        if el == ".." && acc != [] && last acc != ".." then throw ".. not fully supported because of nix limitations" else acc ++ [el]
-      ) [] withoutDuplicateSlashesAndDots;
-      rootAncestor =
-        if hasLeadingSlash
-        then lib.foldl' (acc: el: if acc == [] && el == ".." then acc else acc ++ [el]) [] withoutDotDots
-        else withoutDotDots;
-      result = optionalString hasLeadingSlash "/" + concatStringsSep "/" rootAncestor + optionalString hasEndingSlash "/";
-    in
-      if path == "" then throw "normalizePath: Path is empty"
-      else if rootAncestor == [] then
-        if hasLeadingSlash then "/"
-        else if hasEndingSlash then "./"
-        else "."
-      else result;
+    # `builtins.split` creates a list of 2 * k + 1 elements, containing the k +
+    # 1 parts, interleaved with k matches where k is the number of
+    # (non-overlapping) matches. This calculation here gets the number of parts
+    # back from the list length
+    # floor( (2 * k + 1) / 2 ) + 1 == floor( k + 1/2 ) + 1 == k + 1
+    partCount = length parts / 2 + 1;
+
+    # To assemble the final list we want to:
+    # - Skip a potential leading ".", normalising "./foo" to "foo"
+    #   - Don't skip a leading "" though, since it indicates an absolute path
+    #     Such a part is later replaced with a "/"
+    # - Skip a potential trailing "." or "", normalising "foo/" and "foo/." to
+    #   "foo"
+    skipStart = if head parts == "." then 1 else 0;
+    skipEnd = if last parts == "." || last parts == "" then 1 else 0;
+
+    # We can now know the length of the result by removing the number of
+    # skipped parts from the total number
+    resultLength = partCount - skipEnd - skipStart;
+    # And we can use this to generate the result list directly. Doing it this
+    # way over a combination of `filter`, `init` and `tail` makes it more
+    # efficient, because we don't allocate any intermediate lists
+    result = genList (index:
+      let
+        # To get to the element we need to add the number of parts we skip and
+        # multiply by two due to the interleaved layout of `parts`
+        value = elemAt parts ((skipStart + index) * 2);
+      in
+
+      # We don't support ".." components
+      if value == ".." then
+        throw "lib.path.split: Path contains a `..` component, which is not supported due to ambiguity. You can use the command `realpath` at buildtime or runtime instead"
+
+      # This can only happen for the first element, indicating an absolute path
+      # Replace it with a "/" so that the first returned element is absolute
+      # iff the input path is absolute
+      else if value == "" then
+        "/"
+
+      # Otherwise just return the part unchanged
+      else
+        value
+    ) resultLength;
+
+  in
+    if path == ""
+    then throw "lib.path.split: Path is empty"
+    else result;
 
   /* Check whether a value is a store path.
 
