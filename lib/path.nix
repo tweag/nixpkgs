@@ -13,6 +13,7 @@ let
     substring
     splitString
     optionalString
+    removePrefix
     ;
 
   inherit (lib.lists)
@@ -25,15 +26,57 @@ let
     init
     genList
     elemAt
+    all
+    tail
+    concatMap
+    imap0
     ;
 
-  inherit (lib.paths)
+  inherit (lib.path)
     makeSearchPath
     makeSearchPathOutput
+    split
+    isAbsolute
+    isRelative
     ;
 in /* No rec! Add dependencies on this file just above */ {
 
   isAbsolute = path: lib.strings.hasPrefix "/" (toString path);
+
+  isRelative = path: ! isAbsolute path;
+
+  join = components:
+    let
+      # Returns the same unchanged components, but returns an error if there
+      # are any non-first absolute components
+      validatedComponents = imap0 (i: el:
+        if i != 0 && isAbsolute el then
+          throw "lib.path.join: Component \"${el}\" at position ${toString i} is an absolute path, but only the first component can be an absolute path"
+        else el
+      ) components;
+
+      # Normalises all components by running them through the `split` function
+      # and concatenating the results. This has these effects:
+      # - Turns single components like "foo/bar" into multiple components "foo"
+      #   and "bar"
+      # - Does all the normalising like removing extra "/", "." and erroring on
+      #   ".." components, see the `split` function for that
+      #
+      # If the path is absolute, we end up with an initial "/" entry, which
+      # needs to be handled specially further down
+      normalisedComponents = concatMap split validatedComponents;
+
+      # Joins all components together with an interleaved "/"
+      joined = concatStringsSep "/" normalisedComponents;
+
+      # With normalisedComponents having an initial "/" entry for absolute
+      # paths, the above concatenation makes the result end up having "//" at
+      # the beginning. We need to remove an extra "/", but only if it's
+      # absolute, in which case it also starts with a "/", so we can just use
+      # `removePrefix` for this
+      result = removePrefix "/" joined;
+
+    in result;
 
   split = path:
   let
