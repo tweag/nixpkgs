@@ -19,15 +19,10 @@
 
   Since Nix paths don't support relative paths and they mangle ".."
 
-- Don't allow ambiguous paths
+## Use cases
+- [Source combinators](https://github.com/NixOS/nixpkgs/pull/112083)
 
-  We don't know how these paths are used in the end.
-  When symlinks are involved, paths containting `..` may produce unexpected results.
-
-Use case:
-- <https://github.com/NixOS/nixpkgs/pull/199077#discussion_r1014283534>
-
-## Path references/libraries in other languages/frameworks
+## Other implementations and references
 
 - [Rust](https://doc.rust-lang.org/std/path/struct.PathBuf.html)
 - [Python](https://docs.python.org/3/library/pathlib.html)
@@ -36,7 +31,7 @@ Use case:
 - [POSIX Pathnames](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271)
 - [POSIX Pathname Resolution](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13)
 
-## Design decisions
+## General design decisions
 
 ### Leading dots for relative paths
 [leading-dots]: #leading-dots-for-relative-paths
@@ -59,12 +54,26 @@ Normalised relative paths should always have a leading `./`:
 
 Conclusion: There's some weak arguments for not having `./`, but there's some strong arguments for having it (the first two), so we're going to have it.
 
+### Representation of the current directory
+
+Should it be `.`, `./` or `./.`?
+- `.`: Would be the only path without a `/` and therefore not a valid Nix path in expressions
+  + We don't require people to type this in expressions
+- `.`: Can be interpreted as a shell command (it's a builtin command for zsh)
+- `./`: Inconsistent with [the decision to not have trailing slashes](trailing-slashes)
+- `./.`: Is rather long
+  + We don't require users to type this though, it's only used as a library output. As inputs all three variants are supported
+
+Conclusion: Should be `./.`
+
 ### `split` being part of the public API
 
 `split` is an function to split a path into its components, `join` is the inverse operation. Arguments for `split` being part of the public API:
 + We don't want to encourage custom path handling, which `split` enables
   - If there's a need for it, people will do custom handling either way. `split` is a primitive that can make this safer
 - We might not be able to cover all use cases with our path library
+
+Conclusion: It should be part of the public API
 
 ### Representation
 
@@ -81,16 +90,25 @@ Paths are represented as strings, not as attribute sets with specific attributes
 ### Parents
 [parents]: #parents
 
-`..` path components are not supported, nor as inputs nor as outputs. For similar reasons there's no `parent` function.
+`..` path components are not supported, nor as inputs nor as outputs.
 
 + It requires resolving symlinks to have proper behavior, since e.g. `foo/..` would not be the same as `.` if `foo` is a symlink.
   + We can't resolve symlinks without filesystem access
   + Nix doesn't support reading symlinks at eval-time
+  - What is "proper behavior"? Why can't we just not handle these cases?
+    + E.g. `equals "/foo" "/foo/bar/.."` should those paths be equal?
+      - That can just return `false`, the paths are different, we don't need to check whether the paths point to the same thing
+    + E.g. `relativeTo "/foo" "/bar" == "../foo"`. If this is used like `/bar/../foo` in the end and `bar` is a symlink to somewhere else, this won't be accurate
+      - We could not support such ambiguous operations, or mark them as such, e.g. the normal `relativeTo` will error on such a case, but there could be `extendedRelativeTo` supporting that
+- `..` are a part of paths, a path library should therefore support it
+  + If we can prove that all such use cases are better done e.g. with runtime tools, the library not supporting it can nudge people towards that
+    - Can we prove that though?
 - We could allow ".." just in the beginning
   + Then we'd have to throw an error for doing `join [ "/some/path" "../foo" ]`, making it non-composable
   + The same is for returning paths with `..`: `relativeTo "/foo" "/bar" => "../foo"` would produce a non-composable path
 + We argue that `..` is not needed at the Nix evaluation level, since we'd always start evaluation from the project root and don't go up from there
   + And `..` is supported in Nix paths (which turns them into absolute paths)
+  - But we don't know whether these paths will be used at the Nix evaluation level, they could be for build/runtime
 + If you need `..` for building or runtime, you can use build/run-time tooling to create those (e.g. `realpath` with `--relative-to`), or use absolute paths instead
 
 Why no ".."?
@@ -100,7 +118,17 @@ Why no ".."?
 ### Trailing slashes
 [trailing-slashes]: #trailing-slashes
 
-Trailing slashes are not persisted, because:
+Context: Paths can contain trailing slashes, like `foo/`.
+Often this indicates that `foo` is a directory and not a file.
+It's effectively the same path as just `foo` though.
+This library normalises all paths by removing trailing slashes
+
+Arguments for (+) and against (-) this decision:
+- + Most languages don't preserve them:
+  - Rust doesn't preserve them during normalisation
+  - Python doesn't preserve them
+
+
 - Check other languages (TODO: Link to documentation / arguments)
   - Nix doesn't allow them in the path data type
   - Rust doesn't persist them when normalizing path strings
@@ -163,6 +191,15 @@ TODO:
 
 
 ## API
+
+TODO:
+- baseNameOf
+- dirOf
+- isRelativeTo
+- commonAncestor
+- equals
+- extension handling
+- List of all ancestors (including self)
 
 ### `isAbsolute`
 
