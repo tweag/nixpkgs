@@ -60,21 +60,21 @@ Context: Relative paths can have a leading `./` to indicate it being a relative 
 
 Decision: Returned relative paths should always have a leading `./`
 
-- \+ In shells, just running `foo` as a command wouldn't execute the file `foo`, whereas `./foo` would execute the file. In contrast, `foo/bar` does execute that file without the need for `./`. This can lead to confusion about when a `./` needs to be prefixed. If a `./` is always included, this becomes a non-issue. This effectively then means that paths don't overlap with command names.
-- \+ Using paths in command line arguments could give problems if not escaped properly, e.g. if a path was `--version`. This is not a problem with `./--version`. This effectively then means that paths don't overlap with GNU-style command line options
-- \- The POSIX standard doesn't require `./`
-- \- It's more pretty without the `./`, good for error messages and co.
-  - \+ But similarly, it could be confusing whether something was even a path
+- :heavy_plus_sign: In shells, just running `foo` as a command wouldn't execute the file `foo`, whereas `./foo` would execute the file. In contrast, `foo/bar` does execute that file without the need for `./`. This can lead to confusion about when a `./` needs to be prefixed. If a `./` is always included, this becomes a non-issue. This effectively then means that paths don't overlap with command names.
+- :heavy_plus_sign: Using paths in command line arguments could give problems if not escaped properly, e.g. if a path was `--version`. This is not a problem with `./--version`. This effectively then means that paths don't overlap with GNU-style command line options
+- :heavy_minus_sign: The POSIX standard doesn't require `./`
+- :heavy_minus_sign: It's more pretty without the `./`, good for error messages and co.
+  - :heavy_plus_sign: But similarly, it could be confusing whether something was even a path
     e.g. `foo` could be anything, but `./foo` is more clearly a path
-- \+ Makes it more uniform with absolute paths (those always start with `/`)
-  - \- Not relevant though, this perhaps only simplifies the implementation a tiny bit
-- \+ Makes even single-component relative paths (like `./foo`) valid as a path expression in Nix (`foo` wouldn't be)
-  - \- Not relevant though, we won't use these paths in Nix expressions
-- \+ `find` also outputs results with `./`
-  - \- But only if you give it an argument of `.`. If you give it the argument `some-directory`, it won't prefix that
-- \- `realpath --relative-to` doesn't output `./`'s
-- \- Leads to `split [ "/foo/bar" ] == [ "/" "./foo" "./bar" ]`, which is a bit verbose
-  - \+ Why does that matter?
+- :heavy_plus_sign: Makes it more uniform with absolute paths (those always start with `/`)
+  - :heavy_minus_sign: Not relevant though, this perhaps only simplifies the implementation a tiny bit
+- :heavy_plus_sign: Makes even single-component relative paths (like `./foo`) valid as a path expression in Nix (`foo` wouldn't be)
+  - :heavy_minus_sign: Not relevant though, we won't use these paths in Nix expressions
+- :heavy_plus_sign: `find` also outputs results with `./`
+  - :heavy_minus_sign: But only if you give it an argument of `.`. If you give it the argument `some-directory`, it won't prefix that
+- :heavy_minus_sign: `realpath --relative-to` doesn't output `./`'s
+- :heavy_minus_sign: Leads to `split [ "/foo/bar" ] == [ "/" "./foo" "./bar" ]`, which is a bit verbose
+  - :heavy_plus_sign: Why does that matter?
 
 TODO: Update the library and this document with this decision
 
@@ -90,12 +90,12 @@ Context: The current directory can be represented with `.` or `./` or `./.`
 
 Decision: It should be `./.`
 
-- \+ `.` would be the only path without a `/` and therefore not a valid Nix path in expressions
-  - \- We don't require people to type this in expressions
-- \+ `.` can be interpreted as a shell command (it's a builtin command for zsh)
-- \+ `./` inconsistent with [the decision to not have trailing slashes](#trailing-slashes)
-- \- `./.` is rather long
-  - \+ We don't require users to type this though, it's only used as a library output.
+- :heavy_plus_sign: `.` would be the only path without a `/` and therefore not a valid Nix path in expressions
+  - :heavy_minus_sign: We don't require people to type this in expressions
+- :heavy_plus_sign: `.` can be interpreted as a shell command (it's a builtin command for zsh)
+- :heavy_plus_sign: `./` inconsistent with [the decision to not have trailing slashes](#trailing-slashes)
+- :heavy_minus_sign: `./.` is rather long
+  - :heavy_plus_sign: We don't require users to type this though, it's only used as a library output.
     As inputs all three variants are supported
 
 ### `split` being part of the public API
@@ -106,9 +106,9 @@ The inverse `join` does have lots of use cases though (it appends path component
 
 Decision: `split` should be part of the public API
 
-- \- We don't want to encourage custom path handling, which `split` enables
-  - \+ If there's a need for it, people will do custom handling either way. `split` is a primitive that can make this safer
-- \+ We might not be able to cover all use cases with our path library
+- :heavy_minus_sign: We don't want to encourage custom path handling, which `split` enables
+  - :heavy_plus_sign: If there's a need for it, people will do custom handling either way. `split` is a primitive that can make this safer
+- :heavy_plus_sign: We might not be able to cover all use cases with our path library
 
 ### Representation
 [representation]: #representation
@@ -117,14 +117,14 @@ Context: Paths can be represented directly as a string, or as an attribute set l
 
 Decision: Paths are represented as strings
 
-- \+ It's simpler
-- \+ It's faster
-  - \- Unless you need to do certain path operations in sequence, e.g. `join [ (join [ "/foo" "bar" ]) "baz" ]` needs the inner `join` to return a string composed of its arguments, only for that string to be decomposed again in the outer `join`
-    - \+ We can mostly avoid such costs by exporting sufficiently powerful functions, so that users don't need to make multiple roundtrips to the library representation
-- \+ `+` is convenient and doesn't work on attribute sets
-  - \- It works if we add `__toString` attributes
-    - \+ But then all other attributes get wiped
-    - \+ And we'd then be able to `+` paths again
+- :heavy_plus_sign: It's simpler
+- :heavy_plus_sign: It's faster
+  - :heavy_minus_sign: Unless you need to do certain path operations in sequence, e.g. `join [ (join [ "/foo" "bar" ]) "baz" ]` needs the inner `join` to return a string composed of its arguments, only for that string to be decomposed again in the outer `join`
+    - :heavy_plus_sign: We can mostly avoid such costs by exporting sufficiently powerful functions, so that users don't need to make multiple roundtrips to the library representation
+- :heavy_plus_sign: `+` is convenient and doesn't work on attribute sets
+  - :heavy_minus_sign: It works if we add `__toString` attributes
+    - :heavy_plus_sign: But then all other attributes get wiped
+    - :heavy_plus_sign: And we'd then be able to `+` paths again
 
 ### Parents
 [parents]: #parents
@@ -133,24 +133,24 @@ Context: Paths can have `..` components, which refer to the parent directory
 
 Decision: `..` path components are not supported, nor as inputs nor as outputs.
 
-- \+ It requires resolving symlinks to have proper behavior, since e.g. `foo/..` would not be the same as `.` if `foo` is a symlink.
-  - \+ We can't resolve symlinks without filesystem access
-  - \+ Nix also doesn't support reading symlinks at eval-time
-  - \- What is "proper behavior"? Why can't we just not handle these cases?
-    - \+ E.g. `equals "/foo" "/foo/bar/.."` should those paths be equal?
-      - \- That can just return `false`, the paths are different, we don't need to check whether the paths point to the same thing
-    - \+ E.g. `relativeTo "/foo" "/bar" == "../foo"`. If this is used like `/bar/../foo` in the end and `bar` is a symlink to somewhere else, this won't be accurate
-      - \- We could not support such ambiguous operations, or mark them as such, e.g. the normal `relativeTo` will error on such a case, but there could be `extendedRelativeTo` supporting that
-- \- `..` are a part of paths, a path library should therefore support it
-  - \+ If we can prove that all such use cases are better done e.g. with runtime tools, the library not supporting it can nudge people towards that
-    - \- Can we prove that though?
-- \- We could allow ".." just in the beginning
-  - \+ Then we'd have to throw an error for doing `join [ "/some/path" "../foo" ]`, making it non-composable
-  - \+ The same is for returning paths with `..`: `relativeTo "/foo" "/bar" => "../foo"` would produce a non-composable path
-- \+ We argue that `..` is not needed at the Nix evaluation level, since we'd always start evaluation from the project root and don't go up from there
-  - \+ And `..` is supported in Nix paths, turning them into absolute paths
-    - \- This is ambiguous with symlinks though
-- \+ If you need `..` for building or runtime, you can use build/run-time tooling to create those (e.g. `realpath` with `--relative-to`), or use absolute paths instead.
+- :heavy_plus_sign: It requires resolving symlinks to have proper behavior, since e.g. `foo/..` would not be the same as `.` if `foo` is a symlink.
+  - :heavy_plus_sign: We can't resolve symlinks without filesystem access
+  - :heavy_plus_sign: Nix also doesn't support reading symlinks at eval-time
+  - :heavy_minus_sign: What is "proper behavior"? Why can't we just not handle these cases?
+    - :heavy_plus_sign: E.g. `equals "/foo" "/foo/bar/.."` should those paths be equal?
+      - :heavy_minus_sign: That can just return `false`, the paths are different, we don't need to check whether the paths point to the same thing
+    - :heavy_plus_sign: E.g. `relativeTo "/foo" "/bar" == "../foo"`. If this is used like `/bar/../foo` in the end and `bar` is a symlink to somewhere else, this won't be accurate
+      - :heavy_minus_sign: We could not support such ambiguous operations, or mark them as such, e.g. the normal `relativeTo` will error on such a case, but there could be `extendedRelativeTo` supporting that
+- :heavy_minus_sign: `..` are a part of paths, a path library should therefore support it
+  - :heavy_plus_sign: If we can prove that all such use cases are better done e.g. with runtime tools, the library not supporting it can nudge people towards that
+    - :heavy_minus_sign: Can we prove that though?
+- :heavy_minus_sign: We could allow ".." just in the beginning
+  - :heavy_plus_sign: Then we'd have to throw an error for doing `join [ "/some/path" "../foo" ]`, making it non-composable
+  - :heavy_plus_sign: The same is for returning paths with `..`: `relativeTo "/foo" "/bar" => "../foo"` would produce a non-composable path
+- :heavy_plus_sign: We argue that `..` is not needed at the Nix evaluation level, since we'd always start evaluation from the project root and don't go up from there
+  - :heavy_plus_sign: And `..` is supported in Nix paths, turning them into absolute paths
+    - :heavy_minus_sign: This is ambiguous with symlinks though
+- :heavy_plus_sign: If you need `..` for building or runtime, you can use build/run-time tooling to create those (e.g. `realpath` with `--relative-to`), or use absolute paths instead.
   This also gives you the ability to correctly handle symlinks
 
 ### Trailing slashes
@@ -161,26 +161,26 @@ Context: Paths can contain trailing slashes, like `foo/`, indicating that the pa
 Decision: All functions remove trailing slashes in their results
 
 - Comparison to other frameworks to figure out the least surprising behavior:
-  - \+ Nix itself doesn't preserve trailing newlines when parsing and appending its paths
-  - \- [Rust's std::path](https://doc.rust-lang.org/std/path/index.html) does preserve them during [construction](https://doc.rust-lang.org/std/path/struct.Path.html#method.new)
-    - \+ Doesn't preserve them when returning individual [components](https://doc.rust-lang.org/std/path/struct.Path.html#method.components)
-    - \+ Doesn't preserve them when [canonicalizing](https://doc.rust-lang.org/std/path/struct.Path.html#method.canonicalize)
-  - \+ [Python 3's pathlib](https://docs.python.org/3/library/pathlib.html#module-pathlib) doesn't preserve them during [construction](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath)
+  - :heavy_plus_sign: Nix itself doesn't preserve trailing newlines when parsing and appending its paths
+  - :heavy_minus_sign: [Rust's std::path](https://doc.rust-lang.org/std/path/index.html) does preserve them during [construction](https://doc.rust-lang.org/std/path/struct.Path.html#method.new)
+    - :heavy_plus_sign: Doesn't preserve them when returning individual [components](https://doc.rust-lang.org/std/path/struct.Path.html#method.components)
+    - :heavy_plus_sign: Doesn't preserve them when [canonicalizing](https://doc.rust-lang.org/std/path/struct.Path.html#method.canonicalize)
+  - :heavy_plus_sign: [Python 3's pathlib](https://docs.python.org/3/library/pathlib.html#module-pathlib) doesn't preserve them during [construction](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath)
     - Notably it represents the individual components as a list internally
-  - \- [Haskell's filepath](https://hackage.haskell.org/package/filepath-1.4.100.0) has [explicit support](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html#g:6) for handling trailing slashes
-    - \- Does preserve them for [normalisation](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html#v:normalise)
-  - \- [NodeJS's Path library](https://nodejs.org/api/path.html) preserves trailing slashes for [normalisation](https://nodejs.org/api/path.html#pathnormalizepath)
-    - \+ For [parsing a path](https://nodejs.org/api/path.html#pathparsepath) into its significant elements, trailing slashes are not preserved
-- \+ Nix's builtin function `dirOf` gives an unexpected result for paths with trailing slashes: `dirOf "/foo/bar/" == "/foo/bar"`.
+  - :heavy_minus_sign: [Haskell's filepath](https://hackage.haskell.org/package/filepath-1.4.100.0) has [explicit support](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html#g:6) for handling trailing slashes
+    - :heavy_minus_sign: Does preserve them for [normalisation](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html#v:normalise)
+  - :heavy_minus_sign: [NodeJS's Path library](https://nodejs.org/api/path.html) preserves trailing slashes for [normalisation](https://nodejs.org/api/path.html#pathnormalizepath)
+    - :heavy_plus_sign: For [parsing a path](https://nodejs.org/api/path.html#pathparsepath) into its significant elements, trailing slashes are not preserved
+- :heavy_plus_sign: Nix's builtin function `dirOf` gives an unexpected result for paths with trailing slashes: `dirOf "/foo/bar/" == "/foo/bar"`.
   Inconsistently, `baseNameOf` works correctly though: `baseNameOf "/foo/bar/" == "bar"`.
-  - \- We are writing a path library to improve handling of paths though, so we shouldn't use these functions and discourage their use
-- \- Unexpected result when normalising intermediate paths, like `normalise ("/foo" + "/") + "bar" == "/foobar"`
-  - \+ Does this have a real use case?
-  - \+ Don't use `+` to append paths, this library has a `join` function for that
-    - \- Users might use `+` instinctively though
-- \+ The `realpath` command also removes trailing slashes
-- \+ Even with a trailing slash, the path is the same, it's only an indication that it's a directory
-- \+ Normalisation should return the same string when we know it's the same path, so removing the slash.
+  - :heavy_minus_sign: We are writing a path library to improve handling of paths though, so we shouldn't use these functions and discourage their use
+- :heavy_minus_sign: Unexpected result when normalising intermediate paths, like `normalise ("/foo" + "/") + "bar" == "/foobar"`
+  - :heavy_plus_sign: Does this have a real use case?
+  - :heavy_plus_sign: Don't use `+` to append paths, this library has a `join` function for that
+    - :heavy_minus_sign: Users might use `+` instinctively though
+- :heavy_plus_sign: The `realpath` command also removes trailing slashes
+- :heavy_plus_sign: Even with a trailing slash, the path is the same, it's only an indication that it's a directory
+- :heavy_plus_sign: Normalisation should return the same string when we know it's the same path, so removing the slash.
   This way we can use the result as an attribute key.
 
 TODO:
