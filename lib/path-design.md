@@ -11,7 +11,7 @@
 - Take path or string Nix data types as input
 
   Nix paths are convenient if you need to refer to project-local files, since they resolve relatively to the Nix file they are declared in.
-  
+
   However, they always resolve to absolute paths.
   We need strings to allow specifying relative paths.
 
@@ -24,7 +24,47 @@
   We don't know how these paths are used in the end.
   When symlinks are involved, paths containting `..` may produce unexpected results.
 
+Use case:
+- <https://github.com/NixOS/nixpkgs/pull/199077#discussion_r1014283534>
+
+## Path references/libraries in other languages/frameworks
+
+- [Rust](https://doc.rust-lang.org/std/path/struct.PathBuf.html)
+- [Python](https://docs.python.org/3/library/pathlib.html)
+- [Haskell](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html)
+- [Nodejs](https://nodejs.org/api/path.html#pathnormalizepath)
+- [POSIX Pathnames](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271)
+- [POSIX Pathname Resolution](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13)
+
 ## Design decisions
+
+### Leading dots for relative paths
+[leading-dots]: #leading-dots-for-relative-paths
+
+Normalised relative paths should always have a leading `./`:
+
++ In shells, just running `foo` as a command wouldn't execute the file `foo`, whereas `./foo` would execute the file. In contrast, `foo/bar` does execute that file without the need for `./`. This can lead to confusion about when a `./` needs to be prefixed. If a `./` is always included, this becomes a non-issue. This effectively then means that paths don't overlap with command names.
++ Using paths in command line arguments could give problems if not escaped properly, e.g. if a path was `--version`. This is not a problem with `./--version`. This effectively then means that paths don't overlap with GNU-style command line options
+- The POSIX standard doesn't require `./`
+- It's more pretty without the `./`, good for error messages and co.
+  + But similarly, it could be confusing whether something was even a path
+    e.g. `foo` could be anything, but `./foo` is more clearly a path
++ Makes it more uniform with absolute paths (those always start with `/`)
+  - Not relevant though, this perhaps only simplifies the implementation a tiny bit
++ Makes even single-component relative paths (like `./foo`) valid as a path expression in Nix (`foo` wouldn't be)
+  - Not relevant though, we won't use these paths in Nix expressions
++ `find` also outputs results with `./`
+  - But only if you give it an argument of `.`. If you give it the argument `some-directory`, it won't prefix that
+- `realpath --relative-to` doesn't output `./`'s
+
+Conclusion: There's some weak arguments for not having `./`, but there's some strong arguments for having it (the first two), so we're going to have it.
+
+### `split` being part of the public API
+
+`split` is an function to split a path into its components, `join` is the inverse operation. Arguments for `split` being part of the public API:
++ We don't want to encourage custom path handling, which `split` enables
+  - If there's a need for it, people will do custom handling either way. `split` is a primitive that can make this safer
+- We might not be able to cover all use cases with our path library
 
 ### Representation
 
@@ -32,11 +72,14 @@ Paths are represented as strings, not as attribute sets with specific attributes
 
 + It's simpler
 + It's faster
+  - Unless you need to do certain path operations in sequence, e.g. `join [ (join [ "/foo" "bar" ]) "baz" ]` needs the inner `join` to return a string composed of its arguments, only for that string to be decomposed again in the outer `join`
+    + We can mostly avoid such costs by exporting sufficiently powerful functions, so that users don't need to make multiple roundtrips to the library representation
 + `+` is convenient and doesn't work on attribute sets
   - It works if we add `__toString` attributes
     + But then all other attributes get wiped
 
 ### Parents
+[parents]: #parents
 
 `..` path components are not supported, nor as inputs nor as outputs. For similar reasons there's no `parent` function.
 
@@ -55,6 +98,7 @@ Why no ".."?
 - For build/runtime paths, we can't do much path processing without being able to inspect the filesystem. You can use readlink or other libraries to resolve paths there
 
 ### Trailing slashes
+[trailing-slashes]: #trailing-slashes
 
 Trailing slashes are not persisted, because:
 - Check other languages (TODO: Link to documentation / arguments)
@@ -177,11 +221,6 @@ Invariants:
 Use cases:
 - TODO
 
-Other languages:
-- [Rust](https://doc.rust-lang.org/std/path/struct.PathBuf.html#method.components)
-- [Python](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.parts)
-- [Haskell](https://hackage.haskell.org/package/filepath-1.4.100.0/docs/System-FilePath.html#v:splitDirectories)
-
 ### `join`
 
 Joins path components together. All but the first component must be relative, though they can contain non-leading slashes.
@@ -203,11 +242,25 @@ Use cases:
 
 ### `normalise`
 
-Normalizes the path: Removes extraneous `/./`'s and `//`'s, removes trailing slashes, errors for empty strings. Errors for strings containing "..". Doesn't read from the filesystem and doesn't follow symbolic links.
+Normalizes the path by:
+- Limiting repeating `/` to a single one (does not change a [POSIX Pathname](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271))
+- Removing extraneous `.` components (does not change the result of [POSIX Pathname Resolution](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13))
+- Erroring for empty strings (not allowed as a [POSIX Filename](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_170))
+- Removing trailing `/` and `/.` (See [justification](#trailing-slashes))
+- Erroring for ".." components (See [justification](#parents))
+- Prefixing relative paths with `./` (See [justification](#leading-dots))
 
 Examples:
-- `normalise "///foo/./bar//" == "/foo/bar"`
-- `normalise "//" == "/foo/bar"`
+- `normalise "foo" == "./foo"`
+- `normalise "/foo//bar" == "/foo/bar"`
+- `normalise "/foo/./bar" == "/foo/bar"`
+- `normalise "" == <error>"`
+- `normalise "/foo/" == "/foo"`
+- `normalise "/foo/." == "/foo"`
+- `normalise "/foo/../bar" == <error>`
+- `normalise "//foo" == "/foo"`
+- `normalise "///foo" == "/foo"`
+- `normalise "//././//foo/.//.///bar/." == "/foo/bar"`
 
 Laws:
 - Same as splitting and joining:
@@ -222,8 +275,3 @@ Use cases:
 - As an attribute name for a path -> value lookup attribute set
   - E.g. `environment.etc.<path>`
 - Path equality comparison 
-
-Other languages:
-- [Nodejs](https://nodejs.org/api/path.html#pathnormalizepath)
-- [POSIX Pathnames](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271)
-- [POSIX Pathname Resolution](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13)
