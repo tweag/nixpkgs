@@ -124,7 +124,7 @@ It's effectively the same path as just `foo` though.
 This library normalises all paths by removing trailing slashes
 
 Arguments for (+) and against (-) this decision:
-- + Most languages don't preserve them:
+- \+ Most languages don't preserve them:
   - Rust doesn't preserve them during normalisation
   - Python doesn't preserve them
 
