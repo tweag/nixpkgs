@@ -17,14 +17,14 @@ in stdenv.mkDerivation {
     export libcpp_includes="${llvmPackages.libcxx}/include/c++/v1"
 
     export clang=${clang}
-    substituteAll ${./wrapper} $out/bin/clangd
     chmod +x $out/bin/clangd
     for tool in \
       clang-apply-replacements \
       clang-check \
       clang-format \
       clang-rename \
-      clang-tidy
+      clang-tidy \
+      clangd
     do
       ln -s $out/bin/clangd $out/bin/$tool
     done
