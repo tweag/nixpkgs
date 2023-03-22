@@ -1,6 +1,41 @@
 let
 
   /*
+  <fileset> = {
+    # Invariant: pathExists path
+    path = <path>;
+    type = <path type>;
+
+    # Only allowed if `type == "directory"`
+    # If true, indicates that all files in the directory, recursively, are in the set
+    # If false, indicates that .entries exists and .included further specifies which entries are included
+    includedFallback = <boolean>;
+
+    # Same as readDir, for caching purposes, is this actually needed though?
+    # entries.<name> = <path type>;
+
+    # if `recursive == false`, must be non-empty
+    # Invariant: Must be a subset of .entries
+    included.<name> = <fileset>;
+  }
+
+  Invariant: There's only one representation of the same set of paths
+    This means that <fileset> is always either:
+    - A non-directory
+    - A directory with multiple files
+
+    But then this doesn't really work, because only the root directory should have multiple files!
+
+    Should we have an empty element? Kind of makes sense, but we can't have a valid above structure then
+    Is an empty element needed? I guess if you exclude all files you can end up with it, but there's no reason to construct it yourself. Should an error be thrown when it would be empty? Doesn't seem lawful.
+
+    Maybe we should get rid of this invariant, what would be the point anyways?
+
+
+  */
+
+
+  /*
   - Function for unioning filtered sources together together, either union or extend
   - Function for including exactly those files and directories you want
   - Function for finding files with extensions
