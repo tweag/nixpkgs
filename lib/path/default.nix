@@ -138,6 +138,11 @@ let
 
 in /* No rec! Add dependencies on this file at the top. */ {
 
+  # Safe to use within Nixpkgs, but not for third-parties
+  nixpkgsInternal = {
+    inherit deconstructPath splitRelPath joinRelPath;
+  };
+
   deconstructPath = path:
     let deconstructed = deconstructPath path;
     in {
@@ -192,6 +197,103 @@ in /* No rec! Add dependencies on this file at the top. */ {
           ${subpathInvalidReason subpath}'';
     path + ("/" + subpath);
 
+  /* Determine the difference between multiple paths, including the longest
+    common prefix and the individual suffixes between them
+    The input is an attribute set of paths, where the keys are only for user
+    convenience and can be chosen arbitrarily. The returned attribute set
+    contains two attributes:
+    - `commonPrefix`: A path value containing the common prefix between all the
+      given paths.
+    - `suffix`: An attribute set of normalised subpaths (see
+      `lib.path.subpath.normalise`). The keys are the same
+      as were given as the input, they can be used to easily match up the
+      suffixes to the inputs.
+    Throws an error if all paths don't share the same filesystem root.
+    Laws:
+    - The input paths can be recovered by appending each suffix to the common ancestor
+          forall paths, result = difference paths.
+            mapAttrs (_: append result.commonPrefix) result.suffix == paths
+    - The _longest_ common prefix is returned
+          forall paths, result = difference paths.
+            ! exists longerPrefix. hasProperPrefix result.commonPrefix longerPrefix && all (hasPrefix longerPrefix) (attrValues paths)
+    - Suffixes are normalised
+          forall paths, result = difference paths.
+            mapAttrs (_: subpath.normalise) result.suffix == result.suffix
+    Type:
+      difference :: AttrsOf Path -> { commonPrefix :: Path, suffix :: AttrsOf String }
+    Example:
+      difference { foo = ./foo; bar = ./bar; }
+      => { commonPrefix = ./.; suffix = { foo = "./foo"; bar = "./bar"; }; }
+      difference { foo = ./foo; bar = ./.; }
+      => { commonPrefix = ./.; suffix = { foo = "./foo"; bar = "./."; }; }
+      difference { foo = ./foo; bar = ./foo; }
+      => { commonPrefix = ./foo; suffix = { foo = "./."; bar = "./."; }; }
+      difference { foo = ./foo; bar = ./foo/bar; }
+      => { commonPrefix = ./foo; suffix = { foo = "./."; bar = "./bar"; }; }
+  */
+  difference =
+    # The attribute set of paths to calculate the difference between
+    paths:
+    let
+      # Deconstruct every path into its root and subpath
+      deconstructedPaths = lib.mapAttrsToList (name: value:
+        # Check each item to be an actual path
+        assert assertMsg (isPath value) "lib.path.difference: Attribute ${name} is of type ${typeOf value}, but a path was expected";
+        deconstructPath value // { inherit name value; }
+      ) paths;
+
+      firstPath =
+        assert assertMsg
+          (paths != {})
+          "lib.path.difference: An empty attribute set was given, but a non-empty attribute set was expected";
+        head deconstructedPaths;
+
+      # The common root to all paths, errors if there are different roots
+      commonRoot =
+        # Fast happy path in case all roots are the same
+        if all (path: path.root == firstPath.root) deconstructedPaths then firstPath.root
+        # Slower sad path when that's not the case and we need to throw an error
+        else foldl'
+          (skip: path:
+            if path.root == firstPath.root then skip
+            else throw ''
+              lib.path.difference: Filesystem roots must be the same for all paths, but paths with different roots were given:
+                ${firstPath.name} = ${toString firstPath.value} (root ${toString firstPath.root})
+                ${toString path.name} = ${toString path.value} (root ${toString path.root})''
+          )
+          null
+          deconstructedPaths;
+
+      commonAncestorLength =
+        let
+          recurse = index:
+            let firstComponent = elemAt firstPath.components index; in
+            if all (path:
+                # If all paths have another level of components
+                length path.components > index
+                # And they all match
+                && elemAt path.components index == firstComponent
+              ) deconstructedPaths
+            then recurse (index + 1)
+            else index;
+        in
+          # Ensure that we have a common root before trying to find a common ancestor
+          # If we didn't do this one could evaluate `relativePaths` without an error even when there's no common root
+          builtins.seq commonRoot (recurse 0);
+
+      commonPrefix = commonRoot
+        + ("/" + joinRelPath (take commonAncestorLength firstPath.components));
+
+      suffix = lib.listToAttrs (map (path:
+        lib.nameValuePair path.name (joinRelPath (drop commonAncestorLength path.components))
+      ) deconstructedPaths);
+    in
+    assert assertMsg
+      (lib.isAttrs paths)
+      "lib.path.difference: The given argument is of type ${typeOf paths}, but an attribute set was expected";
+    {
+      inherit commonPrefix suffix;
+    };
   /*
   Whether the second path is a prefix of the first path, or equal to it.
   Throws an error if the paths don't share the same filesystem root.
