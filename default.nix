@@ -5,7 +5,9 @@ if ! builtins ? nixVersion || builtins.compareVersions requiredVersion builtins.
 abort ''
 rcaheourc
 
-aoeurchaoreuch
+  aoeurchaoreuch
+
+  aoceuh
 
     This version of Nixpkgs requires Nix >= ${requiredVersion}, please upgrade:
 
