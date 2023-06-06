@@ -70,7 +70,7 @@
   "devDependencies": {
     "@types/node": "^14.0.4",
     "@types/unzip": "^0.1.1",
-    "fast-xml-parser": "^3.17.1",
+    "fast-xml-parser": "^4.2.4",
     "fuse-box": "^3.7.1",
     "prettier": "^1.18.2",
     "terser": "^4.6.2",
