@@ -1,0 +1,50 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - file-sets
+
+jobs:
+  build:
+    runs-on:
+      group: organization/Default
+      labels: [self-hosted, Linux, X64]
+    steps:
+      - name: Build docs
+        run: |
+          # https://github.com/actions/upload-pages-artifact defaults to _site/, it's as good name as any
+          chmod -R +w _site
+          rm -rf _site
+          mkdir _site
+
+          # Build all components and copy them to their places
+          nix-build '<nixpkgs/doc>' -I nixpkgs=https://github.com/tweag/nixpkgs/tarball/file-sets -o file-sets
+          cp -rL file-sets/share/doc/nixpkgs _site/file-sets
+
+          # Fix file permissions as per https://github.com/actions/upload-pages-artifact#file-permissions
+          chmod -R ugo+rwX _site
+
+      - uses: actions/upload-pages-artifact@v1
+
+  # Copied from https://github.com/actions/deploy-pages#usage
+  # Deploy job
+  deploy:
+    # Add a dependency to the build job
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
