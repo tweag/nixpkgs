@@ -434,6 +434,34 @@ in /* No rec! Add dependencies on this file at the top. */ {
               ${subpathInvalidReason path}''
       ) 0 subpaths;
 
+  /* Split a subpath into its path component strings.
+  Throw an error if the subpath isn't valid, see `lib.path.subpath.isValid`.
+  Note that the returned path components are also valid subpath strings, though they are not normalised.
+
+  Laws:
+
+  - Splitting a subpath into components and joining the components gives the same subpath but normalised
+
+        subpath.join (subpath.components s) == subpath.normalise s
+
+  Type:
+    subpath.components: String -> [ String ]
+
+  Examples:
+    subpath.components "."
+    => [ ]
+    subpath.components "./foo//bar/./baz/"
+    => [ "foo" "bar" "baz" ]
+    subpath.components "/foo"
+    => <error>
+  */
+  subpath.components =
+    subpath:
+    assert assertMsg (isValid subpath) ''
+      lib.path.subpath.components: Argument is not a valid subpath string:
+          ${subpathInvalidReason subpath}'';
+    splitRelPath subpath;
+
   /* Normalise a subpath. Throw an error if the subpath isn't valid, see
   `lib.path.subpath.isValid`
 
