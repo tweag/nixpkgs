@@ -280,18 +280,15 @@ in {
 
   - `fileset` (required): The set of files to import into the Nix store.
     Use the other `lib.fileset` functions to define `fileset`.
-    Only directories containing at least one file are included in the result, unless `extraExistingDirs` is used to ensure the existence of specific directories even without any files.
-
-  - `extraExistingDirs` (optional, default `[]`): Additionally ensure the existence of these directory paths in the result, even they don't contain any files in `fileset`.
+    Only directories containing at least one file are included in the result.
 
   Type:
     toSource :: {
       root :: Path,
       fileset :: FileSet,
-      extraExistingDirs :: [ Path ] ? [ ],
     } -> SourceLike
   */
-  toSource = { root, fileset, extraExistingDirs ? [ ] }:
+  toSource = { root, fileset }:
     let
       maybeFileset = fileset;
     in
@@ -321,31 +318,6 @@ in {
           extraRootNesting = components (removePrefix root fileset._base);
         in _nestTree root extraRootNesting resultingTree;
 
-      sparseExtendedTree =
-        if ! isList extraExistingDirs then
-          throw "lib.fileset.toSource: Expected the `extraExistingDirs` attribute to be a list, but it's a ${typeOf extraExistingDirs} instead."
-        else
-          lib.foldl' (tree: i:
-            let
-              dir = elemAt extraExistingDirs i;
-
-              # We're slightly abusing the internal functions and structure to ensure that the extra directory is represented in the sparse tree.
-              value = mapAttrs (name: value: null) (readDir dir);
-              extraTree = _nestTree root (components (removePrefix root dir)) value;
-              result = _unionTree tree extraTree;
-            in
-            if ! isPath dir then
-              throw "lib.fileset.toSource: Expected all elements of the `extraExistingDirs` attribute to be paths, but element at index ${toString i} is a ${typeOf dir} instead."
-            else if ! pathExists dir then
-              throw "lib.fileset.toSource: Expected all elements of the `extraExistingDirs` attribute to be paths that exist, but the path at index ${toString i} \"${toString dir}\" does not."
-            else if pathType dir != "directory" then
-              throw "lib.fileset.toSource: Expected all elements of the `extraExistingDirs` attribute to be paths pointing to directories, but the path at index ${toString i} \"${toString dir}\" points to a file instead."
-            else if ! hasPrefix root dir then
-              throw "lib.fileset.toSource: Expected all elements of the `extraExistingDirs` attribute to be paths under the `root` attribute \"${toString root}\", but the path at index ${toString i} \"${toString dir}\" is not."
-            else
-              result
-          ) sparseTree (range 0 (length extraExistingDirs - 1));
-
       rootComponentsLength = length (components (splitRoot root).subpath);
 
       # This function is called often for the filter, so it should be fast
@@ -358,7 +330,7 @@ in {
               recurse (index + 1) localTree.${elemAt components index}
             else
               localTree == "directory";
-        in recurse rootComponentsLength sparseExtendedTree;
+        in recurse rootComponentsLength sparseTree;
 
     in
     if ! isPath root then
