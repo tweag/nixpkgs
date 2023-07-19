@@ -1,12 +1,5 @@
-# Add this to docs somewhere: If you pass the same arguments to the same functions, you will get the same result
 { lib }:
 let
-  # TODO: Add builtins.traceVerbose or so to all the operations for debugging
-  # TODO: Document limitation that empty directories won't be included
-  # TODO: Point out that equality comparison using `==` doesn't quite work because there's multiple representations for all files in a directory: "directory" and `readDir path`.
-  # TODO: subset and superset check functions. Can easily be implemented with `difference` and `isEmpty`
-  # TODO: Write down complexity of each operation, most should be O(1)!
-  # TODO: Implement an operation for optionally including a file if it exists.
   # TODO: Derive property tests from https://en.wikipedia.org/wiki/Algebra_of_sets
 
   inherit (builtins)
@@ -198,7 +191,7 @@ let
     else
       readDir path;
 
-  # The following tables are a bit complicated, but they nicely explain the
+  # The following table is a bit complicated, but it nicely explains the
   # corresponding implementations, here's the legend:
   #
   # lhs\rhs: The values for the left hand side and right hand side arguments
@@ -393,29 +386,21 @@ in {
       };
 
   /*
-  Coerce a value to a file set:
-
-  - If the value is a file set already, return it directly
-
-  - If the value is a path pointing to a file, return a file set with that single file
-
-  - If the value is a path pointing to a directory, return a file set with all files contained in that directory
-
-  This function is mostly not needed because all functions in `lib.fileset` will implicitly apply it for arguments that are expected to be a file set.
-
-  Type:
-    coerce :: Any -> FileSet
-  */
-  coerce = value: _coerce "coerce" "argument" value;
-
-  /*
   The file set containing all files that are in either of two given file sets.
-  Recursively, the first argument is evaluated first, only evaluating the second argument if necessary.
+  See also [Union (set theory)](https://en.wikipedia.org/wiki/Union_(set_theory)).
 
-      union a b = a ⋃ b
+  As with all the file set functions that accept file sets as arguments, they also accept paths by [coercing them to file sets](#sec-fileset-path-coercion).
 
   Type:
     union :: FileSet -> FileSet -> FileSet
+
+  Example:
+    # The single file `Makefile` and all files recursively in the `src` directory
+    union ./Makefile ./src
+
+    # Combine the above with all files recursively in the `tests` directory
+    # For this the `unions` function would be better though
+    union (union ./Makefile ./src) ./tests
   */
   union = lhs: rhs:
     let
@@ -437,11 +422,35 @@ in {
       );
 
   /*
-  The file containing all files from that are in any of the given file sets.
-  Recursively, the elements are evaluated from left to right, only evaluating arguments on the right if necessary.
+  The file set containing all files that are in any of the given file sets.
+  See also [Union (set theory)](https://en.wikipedia.org/wiki/Union_(set_theory)).
+
+  As with all the file set functions that accept file sets as arguments, they also accept paths by [coercing them to file sets](#sec-fileset-path-coercion).
 
   Type:
     unions :: [FileSet] -> FileSet
+
+  Example:
+    unions [
+      # Include the single file `Makefile` in the current directory
+      # This errors if the file doesn't exist
+      ./Makefile
+
+      # Also recursively include all files in the `src/code` directory
+      # If this directory is empty this has no effect
+      ./src/code
+
+      # Also include the files `run.sh` and `unit.c` from the `tests` directory
+      ./tests/run.sh
+      ./tests/unit.c
+
+      # Actually let's include the entire `tests` directory
+      # The above lines can be removed without affecting the result
+      ./tests
+
+      # Include the `LICENSE` file from the parent directory
+      ../LICENSE
+    ]
   */
   unions = list:
     let
@@ -456,7 +465,7 @@ in {
     in
     if ! isList list then
       throw "lib.fileset.unions: Expected argument to be a list, but got a ${typeOf list}."
-    else if length list == 0 then
+    else if list == [ ] then
       throw "lib.fileset.unions: Expected argument to be a list with at least one element, but it contains no elements."
     else
       _create normalised.commonBase tree;
