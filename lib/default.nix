@@ -62,6 +62,8 @@ let
     # linux kernel configuration
     kernel = callLibs ./kernel.nix;
 
+    experimental = callLibs ./experimental;
+
     inherit (builtins) add addErrorContext attrNames concatLists
       deepSeq elem elemAt filter genericClosure genList getAttr
       hasAttr head isAttrs isBool isInt isList isPath isString length
