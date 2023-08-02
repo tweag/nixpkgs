@@ -1,5 +1,27 @@
 # Contributing to Nixpkgs packages
 
+This document is for people wanting to contribute specifically to the package collection in Nixpkgs.
+See the [CONTRIBUTING.md](../CONTRIBUTING.md) document for more general information.
+
+## Overview
+
+- [`top-level`](./top-level): Entrypoints, package set aggregations
+  - [`impure.nix`](./top-level/impure.nix), [`default.nix`](./top-level/default.nix), [`config.nix`](./top-level/config.nix): Root entry-point (`import <nixpkgs>`) function definition
+  - [`stage.nix`](./top-level/stage.nix), [`all-packages.nix`](./top-level/all-packages.nix), [`splice.nix`](./top-level/splice.nix): Top-level attribute set (`import <nixpkgs> {…}`) aggregation definition
+  - `*-packages.nix`, [`linux-kernels.nix`](./top-level/linux-kernels.nix), [`unixtools.nix`](./top-level/unixtools.nix): Nested package set aggregation definitions
+  - [`aliases.nix`](./top-level/aliases.nix), [`python-aliases.nix`](./top-level/python-aliases.nix): Renamed and removed package definitions
+  - `release*.nix`, [`make-tarball.nix`](./top-level/make-tarball.nix), [`packages-config.nix`](./top-level/packages-config.nix), [`metrics.nix`](./top-level/metrics.nix), [`nixpkgs-basic-release-checks.nix`](./top-level/nixpkgs-basic-release-checks.nix): Hydra entrypoints and utilities
+- [`development`](./development)
+  - `*-modules`, `*-packages`, `*-pkgs`: package definitions for nested package sets
+  - All other directories loosely categorise top-level package definitions
+- [`build-support`](./build-support): [Builder](#part-builders) definitions
+  - `fetch*`: [Fetcher](#chap-pkgs-fetchers) definitions
+- [`stdenv`](./stdenv): [Standard environment](#part-stdenv) definitions
+- [`pkgs-lib`](./pkgs-lib): Definitions for utilities that need packages but are not needed for packages
+- [`test`](./test): Tests not directly associated with any specific packages
+- [`by-name`](./by-name): Named hierarchy of top-level package definitions
+- All other directories loosely categorise top-level packages definitions
+
 ## Quick Start to Adding a Package {#chap-quick-start}
 
 To add a package to Nixpkgs:
