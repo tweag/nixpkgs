@@ -1,0 +1,36 @@
+# Description here
+name: Validate pkgs/by-name
+
+on: pull_request
+
+permissions: none
+
+jobs:
+  validate:
+    # This is x86_64-linux, for which nixpkgs-check-by-name is always prebuilt on the nixos-* channels.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v22
+        with:
+          # explicitly enable sandbox and restrict eval
+          extra_nix_config: |
+            sandbox = true
+            restrict-eval = true
+      - name: Fetching nixpkgs-check-by-name
+        run: |
+          if [[ "$branch" =~ ^(release|staging|staging-next)-([0-9][0-9]\.[0-9][0-9])$ ]]; then
+              # Use the release channel for all PRs to release-XX.YY, staging-XX.YY and staging-next-XX.YY
+              channel=nixos-${BASH_REMATCH[2]}
+          else
+              # Use the nixos-unstable channel for all other PRs
+              channel=nixos-unstable
+          fi
+
+          echo "Fetching nixpkgs-check-by-name from channel $channel"
+
+          # This should always fetch the prebuilt version from the channel
+          nix-build channel:"$channel" -A tests.nixpkgs-check-by-name --max-jobs 0
+      - name: Running nixpkgs-check-by-name
+        run: |
+          result/bin/nixpkgs-check-by-name .

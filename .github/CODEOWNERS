@@ -49,6 +49,8 @@
 
 # pkgs/by-name
 /pkgs/test/nixpkgs-check-by-name @infinisil
+/pkgs/by-name/README.md @infinisil
+/pkgs/top-level/by-name-overlay.nix @infinisil
 
 # Nixpkgs build-support
 /pkgs/build-support/writers @lassulus @Profpatsch

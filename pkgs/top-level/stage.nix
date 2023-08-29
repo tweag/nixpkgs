@@ -140,6 +140,8 @@ let
 
   splice = self: super: import ./splice.nix lib self (adjacentPackages != null);
 
+  autoCalledPackages = import ./by-name-overlay.nix;
+
   allPackages = self: super:
     let res = import ./all-packages.nix
       { inherit lib noSysDirs config overlays; }
@@ -279,6 +281,7 @@ let
     stdenvAdapters
     trivialBuilders
     splice
+    autoCalledPackages
     allPackages
     otherPackageSets
     aliases
