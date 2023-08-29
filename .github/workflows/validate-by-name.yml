@@ -12,11 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v22
-        with:
-          # explicitly enable sandbox and restrict eval
-          extra_nix_config: |
-            sandbox = true
-            restrict-eval = true
       - name: Fetching nixpkgs-check-by-name
         run: |
           if [[ "$branch" =~ ^(release|staging|staging-next)-([0-9][0-9]\.[0-9][0-9])$ ]]; then
