@@ -25,7 +25,7 @@ jobs:
           echo "Fetching nixpkgs-check-by-name from channel $channel"
 
           # This should always fetch the prebuilt version from the channel
-          nix-build channel:"$channel" -A tests.nixpkgs-check-by-name --max-jobs 0
+          nix-build https://github.com/NixOS/nixpkgs/tarball/master -A tests.nixpkgs-check-by-name
       - name: Running nixpkgs-check-by-name
         run: |
           result/bin/nixpkgs-check-by-name .
