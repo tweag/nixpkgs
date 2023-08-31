@@ -1,12 +1,18 @@
 { lib
-, mkDerivation
 , fetchzip
-, wrapQtAppsHook
 , autoPatchelfHook
-, qtbase
-, qtmultimedia
-, qtx11extras
+, libsForQt5
 }:
+let
+
+  inherit (libsForQt5)
+    mkDerivation
+    wrapQtAppsHook
+    qtbase
+    qtmultimedia
+    qtx11extras;
+
+in
 
 mkDerivation rec {
   pname = "beebeep";
