@@ -6,9 +6,15 @@
 , qtbase
 , qtmultimedia
 , qtx11extras
-}:
+}@attrs:
 
-mkDerivation rec {
+let
+  toTrace = lib.mapAttrs (name: value:
+    value ? __spliced
+  ) attrs;
+in
+
+builtins.trace (lib.generators.toPretty {} toTrace) mkDerivation rec {
   pname = "beebeep";
   version = "5.8.6";
 
