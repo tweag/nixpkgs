@@ -24,7 +24,7 @@ mkDerivation rec {
   };
 
   nativeBuildInputs = [
-    wrapQtAppsHook
+    (removeAttrs wrapQtAppsHook [ "__spliced" ])
     autoPatchelfHook
   ];
 
