@@ -368,6 +368,7 @@ in {
       # 2023-01-15: Support range >= 10 && < 15
       buildTargetLlvmPackages = pkgsBuildTarget.llvmPackages_14;
       llvmPackages = pkgs.llvmPackages_14;
+      ghcFlavour = "perf+no_dynamic_ghc+profiled_ghc+no_dynamic_libs+late_ccs+ticky_ghc+ipe";
     };
 
     ghcjs = compiler.ghcjs810;
