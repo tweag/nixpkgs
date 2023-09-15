@@ -1,5 +1,6 @@
 import ./common-hadrian.nix {
-  version = "9.7.20230527";
-  rev = "69fdbece5f6ca0a718bb9f1fef7b0ab57cf6b664";
-  sha256 = "13rf1d27wdich0kmbds55by9vj3wz0v9clba9p8qpwz7x7wpcjz2";
+  version = "9.7.20230912";
+  url = "https://github.com/tweag/ghc.git";
+  rev = "580d39a2212efb8b79a0a54d73f51ea7e8207f56";
+  sha256 = "sha256-dUBeVY/V2jRyEY9TCgfXkSpsqLb5nbiUZJmxW/qZ5b8=";
 }
