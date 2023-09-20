@@ -283,6 +283,12 @@ If a directory does not recursively contain any file, it is omitted from the sto
     This function is only intended for debugging purposes.
     The exact tracing format is unspecified and may change.
 
+    This function takes a final argument to return.
+    In comparison, [`traceVal`](#function-library-lib.fileset.traceVal) returns
+    the given file set argument.
+
+    This variant is useful for tracing file sets in the Nix repl.
+
     Type:
       trace :: { } -> FileSet -> Any -> Any
 
@@ -324,4 +330,63 @@ If a directory does not recursively contain any file, it is omitted from the sto
         (_printMinimalTree actualFileset._internalBase minimalTree)
         (x: x);
 
+  /*
+    Incrementally evaluate and trace a file set in a pretty way.
+    This function is only intended for debugging purposes.
+    The exact tracing format is unspecified and may change.
+
+    This function returns the given file set.
+    In comparison, [`trace`](#function-library-lib.fileset.trace) takes another argument to return.
+
+    This variant is useful for tracing file sets passed as arguments to other functions.
+
+    Type:
+      traceVal :: { } -> FileSet -> FileSet
+
+    Example:
+      toSource {
+        root = ./.;
+        fileset = traceVal { } (unions [
+          ./Makefile
+          ./src
+          ./tests/run.sh
+        ]);
+      }
+      =>
+      trace: /home/user/src/myProject
+      trace: - Makefile (regular)
+      trace: - src (all files in directory)
+      trace: - tests
+      trace:   - run.sh (regular)
+      "/nix/store/...-source"
+  */
+  traceVal =
+    /*
+    An attribute set to configure how the file set gets printed.
+
+    Currently nothing can be configured, so this must always be an empty attribute set `{ }`.
+    */
+    config:
+    /*
+    The file set to trace and return.
+
+    This argument can also be a path,
+    which gets [implicitly coerced to a file set](#sec-fileset-path-coercion).
+    */
+    fileset:
+    let
+      # "fileset" would be a better name, but that would clash with the argument name,
+      # and we cannot change that because of https://github.com/nix-community/nixdoc/issues/76
+      actualFileset = _coerce "lib.fileset.traceVal: second argument" fileset;
+      # This is just one possible way to prepare a tree for tracing
+      minimalTree = _normaliseTreeMinimal actualFileset._internalBase actualFileset._internalTree;
+    in
+    if config != { } then
+      throw "lib.fileset.traceVal: The first argument must be { }. In the future this can allow configuration of the trace format."
+    else
+      seq
+        (_printMinimalTree actualFileset._internalBase minimalTree)
+        # We could also return the original fileset argument here,
+        # but that would then duplicate work for consumers of the fileset, because then they have to coerce it again
+        actualFileset;
 }
