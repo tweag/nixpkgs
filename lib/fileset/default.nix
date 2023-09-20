@@ -6,12 +6,15 @@ let
     _coerceMany
     _toSourceFilter
     _unionMany
+    _normaliseTreeMinimal
+    _printMinimalTree
     ;
 
   inherit (builtins)
     isList
     isPath
     pathExists
+    seq
     typeOf
     ;
 
@@ -274,5 +277,51 @@ If a directory does not recursively contain any file, it is omitted from the sto
         (_coerceMany "lib.fileset.unions")
         _unionMany
       ];
+
+  /*
+    Incrementally evaluate and trace a file set in a pretty way.
+    This function is only intended for debugging purposes.
+    The exact tracing format is unspecified and may change.
+
+    Type:
+      trace :: { } -> FileSet -> Any -> Any
+
+    Example:
+      trace {} (unions [ ./Makefile ./src ./tests/run.sh ]) null
+      =>
+      trace: /home/user/src/myProject
+      trace: - Makefile (regular)
+      trace: - src (all files in directory)
+      trace: - tests
+      trace:   - run.sh (regular)
+      null
+  */
+  trace =
+    /*
+    An attribute set to configure how the file set gets printed.
+
+    Currently nothing can be configured, so this must always be an empty attribute set `{ }`.
+    */
+    config:
+    /*
+    The file set to trace.
+
+    This argument can also be a path,
+    which gets [implicitly coerced to a file set](#sec-fileset-path-coercion).
+    */
+    fileset:
+    let
+      # "fileset" would be a better name, but that would clash with the argument name,
+      # and we cannot change that because of https://github.com/nix-community/nixdoc/issues/76
+      actualFileset = _coerce "lib.fileset.trace: second argument" fileset;
+      # This is just one possible way to prepare a tree for tracing
+      minimalTree = _normaliseTreeMinimal actualFileset._internalBase actualFileset._internalTree;
+    in
+    if config != { } then
+      throw "lib.fileset.trace: The first argument must be { }. In the future this can allow configuration of the trace format."
+    else
+      seq
+        (_printMinimalTree actualFileset._internalBase minimalTree)
+        (x: x);
 
 }
