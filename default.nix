@@ -2,7 +2,7 @@ let requiredVersion = import ./lib/minver.nix; in
 
 if ! builtins ? nixVersion || builtins.compareVersions requiredVersion builtins.nixVersion == 1 then
 
-  abort ''
+  abort    ''
 
     This version of Nixpkgs requires Nix >= ${requiredVersion}, please upgrade:
 
