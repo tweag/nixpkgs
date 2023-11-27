@@ -13,6 +13,7 @@ if ! builtins ? nixVersion || builtins.compareVersions requiredVersion builtins.
 
     - If you installed Nix using the install script (https://nixos.org/nix/install),
       it is safe to upgrade by running it again:
+      charue
 
           curl -L https://nixos.org/nix/install | sh
 
