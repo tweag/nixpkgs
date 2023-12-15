@@ -75,9 +75,24 @@ jobs:
       - name: Determining PR git hashes
         run: |
           # For pull_request_target this is the same as $GITHUB_SHA
-          echo "baseSha=$(git rev-parse HEAD^1)" >> "$GITHUB_ENV"
+          baseSha=$(git rev-parse HEAD^1)
+          headSha=$(git rev-parse HEAD^2)
 
-          echo "headSha=$(git rev-parse HEAD^2)" >> "$GITHUB_ENV"
+          base=$(mktemp -d)
+          echo "base=$base" >> "$GITHUB_ENV"
+          echo "Checking out the base branch ($baseSha) in a separate directory"
+          git worktree add "$base" "$baseSha"
+
+          # Print a markdown summary in GitHub actions
+          {
+            echo "### Details"
+            echo "- Tested Nixpkgs:"
+            echo "  - Base branch: $GITHUB_BASE_REF"
+            echo "  - Latest base branch commit: [$baseSha](https://github.com/${GITHUB_REPOSITORY}/commit/$baseSha)"
+            echo "  - Latest PR commit: [$headSha](https://github.com/${GITHUB_REPOSITORY}/commit/$headSha)"
+            echo "  - Merge commit: [$mergedSha](https://github.com/${GITHUB_REPOSITORY}/commit/$mergedSha)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: cachix/install-nix-action@7ac1ec25491415c381d9b62f0657c7a028df52a7 # v24
       - name: Determining channel to use for dependencies
         run: |
@@ -101,10 +116,11 @@ jobs:
       - name: Fetching latest version of channel
         run: |
           echo "Fetching latest version of channel $channel"
+          rev=2a107bc64b22101157cad353272495add0947a59
           # This is probably the easiest way to get Nix to output the path to a downloaded channel!
-          nixpkgs=$(nix-instantiate --find-file nixpkgs -I nixpkgs=channel:"$channel")
+          nixpkgs=$(nix-instantiate --find-file nixpkgs -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/"$rev")
           # This file only exists in channels
-          rev=$(<"$nixpkgs"/.git-revision)
+          #rev=$(<"$nixpkgs"/.git-revision)
           echo "Channel $channel is at revision $rev"
           echo "nixpkgs=$nixpkgs" >> "$GITHUB_ENV"
           echo "rev=$rev" >> "$GITHUB_ENV"
@@ -112,84 +128,15 @@ jobs:
         run: |
           echo "Fetching pre-built nixpkgs-check-by-name from channel $channel at revision $rev"
           # Passing --max-jobs 0 makes sure that we won't build anything
-          nix-build "$nixpkgs" -A tests.nixpkgs-check-by-name --max-jobs 0
-      - name: Running nixpkgs-check-by-name
-        run: |
-          echo "Checking whether the check succeeds on the base branch $GITHUB_BASE_REF"
-          git checkout -q "$baseSha"
-          if baseOutput=$(result/bin/nixpkgs-check-by-name . 2>&1); then
-            baseSuccess=1
-          else
-            baseSuccess=
-          fi
-          printf "%s\n" "$baseOutput"
-
-          echo "Checking whether the check would succeed after merging this pull request"
-          git checkout -q "$mergedSha"
-          if mergedOutput=$(result/bin/nixpkgs-check-by-name . 2>&1); then
-            mergedSuccess=1
-            exitCode=0
-          else
-            mergedSuccess=
-            exitCode=1
-          fi
-          printf "%s\n" "$mergedOutput"
-
-          resultToEmoji() {
-            if [[ -n "$1" ]]; then
-              echo ":heavy_check_mark:"
-            else
-              echo ":x:"
-            fi
-          }
+          nix-build "$nixpkgs" -A tests.nixpkgs-check-by-name
 
           # Print a markdown summary in GitHub actions
           {
-            echo "| Nixpkgs version | Check result |"
-            echo "| --- | --- |"
-            echo "| Latest base commit | $(resultToEmoji "$baseSuccess") |"
-            echo "| After merging this PR | $(resultToEmoji "$mergedSuccess") |"
-            echo ""
-
-            if [[ -n "$baseSuccess" ]]; then
-              if [[ -n "$mergedSuccess" ]]; then
-                echo "The check succeeds on both the base branch and after merging this PR"
-              else
-                echo "The check succeeds on the base branch, but would fail after merging this PR:"
-                echo "\`\`\`"
-                echo "$mergedOutput"
-                echo "\`\`\`"
-                echo ""
-              fi
-            else
-              if [[ -n "$mergedSuccess" ]]; then
-                echo "The check fails on the base branch, but this PR fixes it, nicely done!"
-              else
-                echo "The check fails on both the base branch and after merging this PR, unknown if only this PRs changes would satisfy the check, the base branch needs to be fixed first."
-                echo ""
-                echo "Failure on the base branch:"
-                echo "\`\`\`"
-                echo "$baseOutput"
-                echo "\`\`\`"
-                echo ""
-                echo "Failure after merging this PR:"
-                echo "\`\`\`"
-                echo "$mergedOutput"
-                echo "\`\`\`"
-                echo ""
-              fi
-            fi
-
-            echo "### Details"
             echo "- nixpkgs-check-by-name tool:"
             echo "  - Channel: $channel"
             echo "  - Nixpkgs commit: [$rev](https://github.com/${GITHUB_REPOSITORY}/commit/$rev)"
             echo "  - Store path: \`$(realpath result)\`"
-            echo "- Tested Nixpkgs:"
-            echo "  - Base branch: $GITHUB_BASE_REF"
-            echo "  - Latest base branch commit: [$baseSha](https://github.com/${GITHUB_REPOSITORY}/commit/$baseSha)"
-            echo "  - Latest PR commit: [$headSha](https://github.com/${GITHUB_REPOSITORY}/commit/$headSha)"
-            echo "  - Merge commit: [$mergedSha](https://github.com/${GITHUB_REPOSITORY}/commit/$mergedSha)"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          exit "$exitCode"
+      - name: Running nixpkgs-check-by-name
+        run: result/bin/nixpkgs-check-by-name --base "$base" .
