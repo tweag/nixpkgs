@@ -824,7 +824,7 @@ with pkgs;
   sea-orm-cli = callPackage ../development/tools/sea-orm-cli { };
 
   vcpkg-tool = callPackage ../by-name/vc/vcpkg-tool/package.nix {
-    fmt = fmt_10;
+    #fmt = fmt_10;
   };
 
   r3ctl = qt5.callPackage ../tools/misc/r3ctl { };
