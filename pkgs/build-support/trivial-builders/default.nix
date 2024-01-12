@@ -279,6 +279,7 @@ rec {
   writeShellApplication =
     { name
     , text
+    , bash ? runtimeShell
     , runtimeInputs ? [ ]
     , meta ? { }
     , checkPhase ? null
@@ -288,13 +289,14 @@ rec {
     }@args:
     let
       extraArgs = builtins.removeAttrs args
-          [
-            "text"
-            "runtimeInputs"
-            "checkPhase"
-            "excludeShellChecks"
-            "bashOptions"
-          ];
+        [
+          "text"
+          "bash"
+          "runtimeInputs"
+          "checkPhase"
+          "excludeShellChecks"
+          "bashOptions"
+        ];
     in
     writeTextFile ({
       executable = true;
@@ -327,7 +329,8 @@ rec {
         in
         if checkPhase == null then ''
           runHook preCheck
-          ${stdenv.shellDryRun} "$target"
+          # This is `shellDryRun` but for our particular `bash`.
+          ${bash} -n -O extglob "$target"
           ${shellcheckCommand}
           runHook postCheck
         ''
