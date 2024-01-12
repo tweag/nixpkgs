@@ -249,59 +249,74 @@ rec {
       meta.mainProgram = name;
     };
 
-  /*
-    Similar to writeShellScriptBin and writeScriptBin.
-    Writes an executable Shell script to /nix/store/<store path>/bin/<name> and
-    checks its syntax with shellcheck and the shell's -n option.
-    Individual checks can be foregone by putting them in the excludeShellChecks
-    list, e.g. [ "SC2016" ].
-    Automatically includes sane set of shellopts (errexit, nounset, pipefail)
-    and handles creation of PATH based on runtimeInputs
-
-    Note that the checkPhase uses stdenv.shell for the test run of the script,
-    while the generated shebang uses runtimeShell. If, for whatever reason,
-    those were to mismatch you might lose fidelity in the default checks.
-
-    Example:
-
-    Writes my-file to /nix/store/<store path>/bin/my-file and makes executable.
-
-
-    writeShellApplication {
-      name = "my-file";
-      runtimeInputs = [ curl w3m ];
-      text = ''
-        curl -s 'https://nixos.org' | w3m -dump -T text/html
-       '';
-    }
-
-  */
+  # See doc/build-helpers/trivial-build-helpers.chapter.md
+  # or https://nixos.org/manual/nixpkgs/unstable/#trivial-builder-text-writing
   writeShellApplication =
-    { name
-    , text
-    , bash ? runtimeShell
-    , runtimeInputs ? [ ]
-    , runtimeEnv ? null
-    , meta ? { }
-    , checkPhase ? null
-    , excludeShellChecks ? [ ]
-    , bashOptions ? [ "errexit" "nounset" "pipefail" ]
-    , ...
-    }@args:
-    let
-      extraArgs = builtins.removeAttrs args
-        [
-          "text"
-          "bash"
-          "runtimeInputs"
-          "runtimeEnv"
-          "meta"
-          "checkPhase"
-          "excludeShellChecks"
-          "bashOptions"
-        ];
-    in
-    writeTextFile ({
+    {
+      /*
+         The name of the script to write.
+
+         Type: String
+       */
+      name,
+      /*
+         The shell script's text, not including a shebang.
+
+         Type: String
+       */
+      text,
+      /*
+         The `bash` command to execute the script with.
+
+         Type: String|Path
+      */
+      bash ? runtimeShell,
+      /*
+         Inputs to add to the shell script's `$PATH` at runtime.
+
+         Type: [String|Path]
+       */
+      runtimeInputs ? [ ],
+      /*
+         Extra environment variables to set at runtime.
+
+         Type: AttrSet
+       */
+      runtimeEnv ? null,
+      /*
+         `stdenv.mkDerivation`'s `meta` argument.
+
+         Type: AttrSet
+       */
+      meta ? { },
+      /*
+         The `checkPhase` to run. Defaults to `shellcheck` on supported
+         platforms and `${bash} -n`.
+
+         Type: String
+       */
+      checkPhase ? null,
+      /*
+         Checks to exclude when running `shellcheck`, e.g. `[ "SC2016" ]`.
+
+         Type: [String]
+       */
+      excludeShellChecks ? [ ],
+      /*
+         Bash options to activate with `set -o` at the start of the script.
+
+         Defaults to `[ "errexit" "nounset" "pipefail" ]`.
+
+         Type: [String]
+       */
+      bashOptions ? [ "errexit" "nounset" "pipefail" ],
+      /* Extra arguments to pass to `stdenv.mkDerivation`.
+
+         Type: AttrSet
+       */
+      derivationArgs ? { },
+    }:
+    writeTextFile {
       executable = true;
       inherit name meta;
       destination = "/bin/${name}";
