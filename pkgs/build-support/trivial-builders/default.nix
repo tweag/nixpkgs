@@ -152,19 +152,30 @@ rec {
     , meta ? { }
     , allowSubstitutes ? false
     , preferLocalBuild ? true
-    }:
+    , ...
+    }@args:
     let
       matches = builtins.match "/bin/([^/]+)" destination;
+      extraArgs = builtins.removeAttrs args
+        [
+          "name"
+          "executable"
+          "destination"
+          "checkPhase"
+          "meta"
+          "allowSubstitutes"
+          "preferLocalBuild"
+        ];
     in
     runCommand name
-      {
+      ({
         inherit text executable checkPhase allowSubstitutes preferLocalBuild;
         passAsFile = [ "text" ];
         meta = lib.optionalAttrs (executable && matches != null)
           {
             mainProgram = lib.head matches;
           } // meta;
-      }
+      } // extraArgs)
       ''
         target=$out${lib.escapeShellArg destination}
         mkdir -p "$(dirname "$target")"
@@ -273,10 +284,21 @@ rec {
     , checkPhase ? null
     , excludeShellChecks ? [ ]
     , bashOptions ? [ "errexit" "nounset" "pipefail" ]
-    }:
-    writeTextFile {
-      inherit name meta;
+    , ...
+    }@args:
+    let
+      extraArgs = builtins.removeAttrs args
+          [
+            "text"
+            "runtimeInputs"
+            "checkPhase"
+            "excludeShellChecks"
+            "bashOptions"
+          ];
+    in
+    writeTextFile ({
       executable = true;
+      inherit name meta;
       destination = "/bin/${name}";
       allowSubstitutes = true;
       preferLocalBuild = false;
@@ -310,7 +332,7 @@ rec {
           runHook postCheck
         ''
         else checkPhase;
-    };
+    } // extraArgs);
 
   # Create a C binary
   writeCBin = pname: code:
