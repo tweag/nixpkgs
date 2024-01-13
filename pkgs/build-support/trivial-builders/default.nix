@@ -293,11 +293,15 @@ rec {
          The `checkPhase` to run. Defaults to `shellcheck` on supported
          platforms and `${bash} -n`.
 
+         The script path will be given as `$target` in the `checkPhase`.
+
          Type: String
        */
       checkPhase ? null,
       /*
          Checks to exclude when running `shellcheck`, e.g. `[ "SC2016" ]`.
+
+         See <https://www.shellcheck.net/wiki/> for a list of checks.
 
          Type: [String]
        */
@@ -326,12 +330,13 @@ rec {
         #!${bash}
         ${lib.concatMapStringsSep "\n" (option: "set -o ${option}") bashOptions}
       '' + lib.optionalString (runtimeEnv != null)
-        (lib.concatStringsSep
+        (lib.concatStrings
           (lib.mapAttrsToList
             (name: value: ''
               ${lib.toShellVar name value}
               export ${name}
-            '')))
+            '')
+            runtimeEnv))
       + lib.optionalString (runtimeInputs != [ ]) ''
 
         export PATH="${lib.makeBinPath runtimeInputs}:$PATH"
