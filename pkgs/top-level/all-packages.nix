@@ -122,6 +122,8 @@ with pkgs;
 
   nix-generate-from-cpan = callPackage ../../maintainers/scripts/nix-generate-from-cpan.nix { };
 
+  this-should-error = callPackage ../../maintainers/scripts/nix-generate-from-cpan.nix { };
+
   nixpkgs-lint = callPackage ../../maintainers/scripts/nixpkgs-lint.nix { };
 
   common-updater-scripts = callPackage ../common-updater/scripts.nix { };
