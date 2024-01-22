@@ -120,6 +120,8 @@ with pkgs;
 
   ### Nixpkgs maintainer tools
 
+  foo = callPackage ({ emptyFile }: emptyFile) { };
+
   nix-generate-from-cpan = callPackage ../../maintainers/scripts/nix-generate-from-cpan.nix { };
 
   nixpkgs-lint = callPackage ../../maintainers/scripts/nixpkgs-lint.nix { };
