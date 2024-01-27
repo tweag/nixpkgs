@@ -153,9 +153,12 @@ mkDerivation (finalAttrs: {
 
   patches = patches fetchpatch ++ lib.optionals withNativeCompilation [
     (substituteAll {
-      src = if lib.versionOlder finalAttrs.version "29"
-            then ./native-comp-driver-options-28.patch
-            else ./native-comp-driver-options.patch;
+      src = if lib.versionOlder finalAttrs.version "29" then
+              ./native-comp-driver-options-28.patch
+            else if lib.versionOlder finalAttrs.version "29.3" then
+              ./native-comp-driver-options-29.2.patch
+            else
+              ./native-comp-driver-options.patch;
       backendPath = (lib.concatStringsSep " "
         (builtins.map (x: ''"-B${x}"'') ([
           # Paths necessary so the JIT compiler finds its libraries:
