@@ -103,8 +103,8 @@ linkFarm "writeShellApplication-tests" {
     checkShellApplication {
       name = "test-argument-forwarding";
       text = "";
-      MY_BUILD_TIME_VARIABLE = "puppy";
-      postCheck = ''
+      derivationArgs.MY_BUILD_TIME_VARIABLE = "puppy";
+      derivationArgs.postCheck = ''
         if [[ "$MY_BUILD_TIME_VARIABLE" != puppy ]]; then
           echo "\$MY_BUILD_TIME_VARIABLE is not set to 'puppy'!"
           exit 1

@@ -152,20 +152,10 @@ rec {
     , meta ? { }
     , allowSubstitutes ? false
     , preferLocalBuild ? true
-    , ...
-    }@args:
+    , derivationArgs ? { } # Extra arguments to pass to `stdenv.mkDerivation`
+    }:
     let
       matches = builtins.match "/bin/([^/]+)" destination;
-      extraArgs = builtins.removeAttrs args
-        [
-          "name"
-          "executable"
-          "destination"
-          "checkPhase"
-          "meta"
-          "allowSubstitutes"
-          "preferLocalBuild"
-        ];
     in
     runCommand name
       ({
@@ -175,7 +165,7 @@ rec {
           {
             mainProgram = lib.head matches;
           } // meta;
-      } // extraArgs)
+      } // derivationArgs)
       ''
         target=$out${lib.escapeShellArg destination}
         mkdir -p "$(dirname "$target")"
@@ -322,7 +312,7 @@ rec {
     }:
     writeTextFile {
       executable = true;
-      inherit name meta;
+      inherit name meta derivationArgs;
       destination = "/bin/${name}";
       allowSubstitutes = true;
       preferLocalBuild = false;
@@ -365,7 +355,7 @@ rec {
           runHook postCheck
         ''
         else checkPhase;
-    } // extraArgs);
+    };
 
   # Create a C binary
   writeCBin = pname: code:
