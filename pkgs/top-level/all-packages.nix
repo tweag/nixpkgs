@@ -720,6 +720,11 @@ with pkgs;
   gridlock = callPackage ../tools/nix/gridlock { };
   inherit (gridlock) nyarr;
 
+  fooSet = {
+    foo = callPackage ../tools/misc/hwatch { };
+  };
+  inherit (fooSet) foo;
+
   hwatch = callPackage ../tools/misc/hwatch { };
 
   hobbes = callPackage ../development/tools/hobbes { };
