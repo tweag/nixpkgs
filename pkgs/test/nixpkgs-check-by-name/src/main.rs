@@ -1,3 +1,4 @@
+use std::io::Write;
 use crate::nix_file::NixFileStore;
 mod eval;
 mod nix_file;
@@ -13,13 +14,24 @@ use crate::validation::Validation::Failure;
 use crate::validation::Validation::Success;
 use anyhow::Context;
 use clap::Parser;
+use clap::Subcommand;
 use colored::Colorize;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 /// Program to check the validity of pkgs/by-name
-///
+#[derive(Parser, Debug)]
+#[command(about, verbatim_doc_comment)]
+pub struct Args {
+    #[command(subcommand)]
+    command: Commands,
+
+    /// Path to the main Nixpkgs to check.
+    /// For PRs, this should be set to a checkout of the PR branch.
+    nixpkgs: PathBuf,
+}
+
 /// This CLI interface may be changed over time if the CI workflow making use of
 /// it is adjusted to deal with the change appropriately.
 ///
@@ -31,33 +43,60 @@ use std::process::ExitCode;
 /// Standard error:
 /// - Informative messages
 /// - Detected problems if validation is not successful
-#[derive(Parser, Debug)]
-#[command(about, verbatim_doc_comment)]
-pub struct Args {
-    /// Path to the main Nixpkgs to check.
-    /// For PRs, this should be set to a checkout of the PR branch.
-    nixpkgs: PathBuf,
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Checks whether PR is valid
+    CheckPR {
+        /// Path to the base Nixpkgs to run ratchet checks against.
+        /// For PRs, this should be set to a checkout of the PRs base branch.
+        #[arg(long)]
+        base: PathBuf,
+    },
 
-    /// Path to the base Nixpkgs to run ratchet checks against.
-    /// For PRs, this should be set to a checkout of the PRs base branch.
-    #[arg(long)]
-    base: PathBuf,
+    /// Migrates a Nixpkgs
+    Migrate,
 }
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    match process(&args.base, &args.nixpkgs, false, &mut io::stderr()) {
-        Ok(true) => {
-            eprintln!("{}", "Validated successfully".green());
-            ExitCode::SUCCESS
+    let mut nix_file_store = NixFileStore::default();
+    match args.command {
+        Commands::CheckPR { base } => {
+            match process(&base, &args.nixpkgs, &mut nix_file_store, false, &mut io::stderr()) {
+                Ok(true) => {
+                    eprintln!("{}", "Validated successfully".green());
+                    ExitCode::SUCCESS
+                }
+                Ok(false) => {
+                    eprintln!("{}", "Validation failed, see above errors".yellow());
+                    ExitCode::from(1)
+                }
+                Err(e) => {
+                    eprintln!("{} {:#}", "I/O error: ".yellow(), e);
+                    ExitCode::from(2)
+                }
+            }
         }
-        Ok(false) => {
-            eprintln!("{}", "Validation failed, see above errors".yellow());
-            ExitCode::from(1)
-        }
-        Err(e) => {
-            eprintln!("{} {:#}", "I/O error: ".yellow(), e);
-            ExitCode::from(2)
+        Commands::Migrate => {
+            let mut error_writer = &mut io::stderr();
+            match check_nixpkgs(&args.nixpkgs, &mut nix_file_store, false, &mut error_writer) {
+                Ok(validation::Validation::Success(nixpkgs)) => {
+                    nixpkgs.migrate(&mut nix_file_store);
+                    eprintln!("{}", "Migration done".green());
+                    ExitCode::SUCCESS
+                }
+                Ok(validation::Validation::Failure(errors)) => {
+                    for error in errors {
+                        writeln!(error_writer, "{}", error.to_string().red()).unwrap()
+                    }
+                    eprintln!("{}", "Validation failed, see above errors".yellow());
+                    ExitCode::from(1)
+                }
+                Err(e) => {
+                    eprintln!("{} {:#}", "I/O error: ".yellow(), e);
+                    ExitCode::from(2)
+                }
+            }
         }
     }
 }
@@ -79,15 +118,16 @@ fn main() -> ExitCode {
 pub fn process<W: io::Write>(
     base_nixpkgs: &Path,
     main_nixpkgs: &Path,
+    nix_file_store: &mut NixFileStore,
     keep_nix_path: bool,
     error_writer: &mut W,
 ) -> anyhow::Result<bool> {
     // Check the main Nixpkgs first
-    let main_result = check_nixpkgs(main_nixpkgs, keep_nix_path, error_writer)?;
+    let main_result = check_nixpkgs(main_nixpkgs, nix_file_store, keep_nix_path, error_writer)?;
     let check_result = main_result.result_map(|nixpkgs_version| {
         // If the main Nixpkgs doesn't have any problems, run the ratchet checks against the base
         // Nixpkgs
-        check_nixpkgs(base_nixpkgs, keep_nix_path, error_writer)?.result_map(
+        check_nixpkgs(base_nixpkgs, nix_file_store, keep_nix_path, error_writer)?.result_map(
             |base_nixpkgs_version| {
                 Ok(ratchet::Nixpkgs::compare(
                     base_nixpkgs_version,
@@ -115,10 +155,10 @@ pub fn process<W: io::Write>(
 /// ratchet check against another result.
 pub fn check_nixpkgs<W: io::Write>(
     nixpkgs_path: &Path,
+    nix_file_store: &mut NixFileStore,
     keep_nix_path: bool,
     error_writer: &mut W,
 ) -> validation::Result<ratchet::Nixpkgs> {
-    let mut nix_file_store = NixFileStore::default();
 
     Ok({
         let nixpkgs_path = nixpkgs_path.canonicalize().with_context(|| {
@@ -136,16 +176,17 @@ pub fn check_nixpkgs<W: io::Write>(
             )?;
             Success(ratchet::Nixpkgs::default())
         } else {
-            check_structure(&nixpkgs_path, &mut nix_file_store)?.result_map(|package_names|
+            check_structure(&nixpkgs_path, nix_file_store)?.result_map(|package_names|
                 // Only if we could successfully parse the structure, we do the evaluation checks
-                eval::check_values(&nixpkgs_path, &mut nix_file_store, package_names, keep_nix_path))?
+                eval::check_values(&nixpkgs_path, nix_file_store, package_names, keep_nix_path))?
         }
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::process;
+    use crate::NixFileStore;
+use crate::process;
     use crate::utils;
     use anyhow::Context;
     use std::fs;
@@ -240,7 +281,8 @@ mod tests {
         // We don't want coloring to mess up the tests
         let writer = temp_env::with_var("NO_COLOR", Some("1"), || -> anyhow::Result<_> {
             let mut writer = vec![];
-            process(base_nixpkgs, &path, true, &mut writer)
+            let mut nix_file_store = NixFileStore::default();
+            process(base_nixpkgs, &path, &mut nix_file_store, true, &mut writer)
                 .with_context(|| format!("Failed test case {name}"))?;
             Ok(writer)
         })?;

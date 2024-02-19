@@ -1,5 +1,8 @@
 //! This is a utility module for interacting with the syntax of Nix files
 
+use std::ops::Range;
+use std::io::Write;
+use std::fs::File;
 use crate::utils::LineIndex;
 use anyhow::Context;
 use rnix::ast;
@@ -34,6 +37,15 @@ impl NixFileStore {
             Entry::Vacant(entry) => Ok(entry.insert(NixFile::new(path)?)),
         }
     }
+
+    //pub fn render(&mut self) -> anyhow::Result<()> {
+    //    for (_path, file) in &mut self.entries {
+    //        if file.needs_rendering {
+    //            file.render()?
+    //        }
+    //    }
+    //    Ok(())
+    //}
 }
 
 /// A structure for storing a successfully parsed Nix file
@@ -42,8 +54,66 @@ pub struct NixFile {
     pub parent_dir: PathBuf,
     /// The path to the file itself, for errors
     pub path: PathBuf,
-    pub syntax_root: rnix::Root,
+    pub root_node: rnix::SyntaxNode,
     pub line_index: LineIndex,
+
+
+    /// The queued updates to it
+    pub mutable_root_node: Option<rnix::SyntaxNode>,
+}
+
+pub struct Chunk<'a> {
+    contents: &'a [u8],
+}
+
+pub struct MutableFile<'a> {
+    chunks: Vec<&'a [u8]>,
+}
+
+impl<'a> MutableFile<'a> {
+    
+}
+
+pub struct Edit {
+    remove: Range<usize>,
+    insert: Vec<u8>,
+}
+
+
+// Goal: Don't return any SyntaxNode's?
+
+impl NixFile {
+
+    pub fn mutable_root_node(&mut self) -> &rnix::SyntaxNode {
+        if let Some(ref node) = self.mutable_root_node {
+            node
+        } else {
+            self.mutable_root_node = Some(self.root_node.clone_for_update());
+            self.mutable_root_node.as_ref().unwrap()
+        }
+    }
+
+    //pub fn update_root_node(&mut self, green: rowan::GreenNode) {
+    //    self.root_node = rowan::SyntaxNode::new_root(green);
+    //    self.needs_rendering = true;
+    //}
+
+    pub fn render(&mut self) -> anyhow::Result<()> {
+        if let Some(ref node) = self.mutable_root_node {
+            let mut file = File::create(&self.path)?;
+
+            let bytes = node.to_string().into_bytes();
+
+            file.write_all(&bytes)?;
+
+            self.mutable_root_node = None;
+
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
 }
 
 impl NixFile {
@@ -68,8 +138,9 @@ impl NixFile {
             .map(|syntax_root| NixFile {
                 parent_dir: parent_dir.to_path_buf(),
                 path: path.as_ref().to_owned(),
-                syntax_root,
+                root_node: syntax_root.syntax().clone(),
                 line_index,
+                mutable_root_node: None,
             })
             .with_context(|| format!("Could not parse file {} with rnix", path.as_ref().display()))
     }
@@ -123,20 +194,19 @@ impl NixFile {
         let Some(attrpath_value) = self.attrpath_value_at(line, column)? else {
             return Ok(None);
         };
-        self.attrpath_value_call_package_argument_info(attrpath_value, relative_to)
+        self.attrpath_value_call_package_argument_info(&attrpath_value, relative_to)
     }
 
     // Internal function mainly to make it independently testable
-    fn attrpath_value_at(
+    pub fn attrpath_value_at(
         &self,
         line: usize,
         column: usize,
-    ) -> anyhow::Result<Option<ast::AttrpathValue>> {
+    ) -> anyhow::Result<Option<rnix::SyntaxNode>> {
         let index = self.line_index.fromlinecolumn(line, column);
 
         let token_at_offset = self
-            .syntax_root
-            .syntax()
+            .root_node
             .token_at_offset(TextSize::from(index as u32));
 
         // The token_at_offset function takes indices to mean a location _between_ characters,
@@ -178,26 +248,31 @@ impl NixFile {
             )
         };
 
-        if !ast::AttrpathValue::can_cast(attrpath_value_node.kind()) {
+        if attrpath_value_node.kind() != SyntaxKind::NODE_ATTRPATH_VALUE {
             anyhow::bail!(
                 "Node in {} is not an attribute path value node: {attrpath_value_node:?}",
                 self.path.display()
             )
         }
+
         // attrpath_value_node looks like "foo.bar = 10;"
+
 
         // unwrap is fine because we confirmed that we can cast with the above check.
         // We could avoid this `unwrap` for a `clone`, since `cast` consumes the argument,
         // but we still need it for the error message when the cast fails.
-        Ok(Some(ast::AttrpathValue::cast(attrpath_value_node).unwrap()))
+        Ok(Some(attrpath_value_node))
     }
 
     // Internal function mainly to make attrpath_value_at independently testable
-    fn attrpath_value_call_package_argument_info(
+    pub fn attrpath_value_call_package_argument_info(
         &self,
-        attrpath_value: ast::AttrpathValue,
+        attrpath_value_node: &rnix::SyntaxNode,
         relative_to: &Path,
     ) -> anyhow::Result<Option<CallPackageArgumentInfo>> {
+
+        let attrpath_value = ast::AttrpathValue::cast(attrpath_value_node.to_owned()).unwrap();
+
         let Some(attrpath) = attrpath_value.attrpath() else {
             anyhow::bail!("attrpath value node doesn't have an attrpath: {attrpath_value:?}")
         };

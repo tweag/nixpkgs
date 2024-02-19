@@ -122,7 +122,7 @@ fn check_nix_file(
     let nix_file = nix_file_store.get(&path)?;
 
     Ok(validation::sequence_(
-        nix_file.syntax_root.syntax().descendants().map(|node| {
+        nix_file.root_node.descendants().map(|node| {
             let text = node.text().to_string();
             let line = nix_file.line_index.line(node.text_range().start().into());
 

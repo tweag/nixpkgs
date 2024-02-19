@@ -1,4 +1,4 @@
-use crate::nixpkgs_problem::NixpkgsProblem;
+pub(crate) use crate::nixpkgs_problem::NixpkgsProblem;
 use crate::ratchet;
 use crate::structure;
 use crate::utils;
@@ -405,59 +405,73 @@ fn handle_non_by_name_attribute(
             location: Some(location),
         }) = non_by_name_attribute {
 
+        let nix_file = nix_file_store.get(&location.file)?;
+
         // Parse the Nix file in the location and figure out whether it's an
         // attribute definition of the form `= callPackage <arg1> <arg2>`,
         // returning the arguments if so.
-        let optional_syntactic_call_package = nix_file_store
-            .get(&location.file)?
-            .call_package_argument_info_at(
-                location.line,
-                location.column,
+        if let Some(attrpath_value_node) = nix_file.attrpath_value_at(location.line, location.column)? {
+
+            // Parse the Nix file in the location and figure out whether it's an
+            // attribute definition of the form `= callPackage <arg1> <arg2>`,
+            // returning the arguments if so.
+            let optional_syntactic_call_package = nix_file.attrpath_value_call_package_argument_info(
+                &attrpath_value_node,
                 // Passing the Nixpkgs path here both checks that the <arg1> is within Nixpkgs, and
                 // strips the absolute Nixpkgs path from it, such that
                 // syntactic_call_package.relative_path is relative to Nixpkgs
                 nixpkgs_path
             )?;
 
-        // At this point, we completed two different checks for whether it's a
-        // `callPackage`
-        match (is_semantic_call_package, optional_syntactic_call_package) {
-            // Something like `<attr> = { }`
-            (false, None)
-            // Something like `<attr> = pythonPackages.callPackage ...`
-            | (false, Some(_))
-            // Something like `<attr> = bar` where `bar = pkgs.callPackage ...`
-            | (true, None) => {
-                // In all of these cases, it's not possible to migrate the package to `pkgs/by-name`
-                NonApplicable
-            }
-            // Something like `<attr> = pkgs.callPackage ...`
-            (true, Some(syntactic_call_package)) => {
-                // It's only possible to migrate such a definitions if..
-                match syntactic_call_package.relative_path {
-                    Some(ref rel_path) if rel_path.starts_with(utils::BASE_SUBPATH) => {
-                        // ..the path is not already within `pkgs/by-name` like
-                        //
-                        //   foo-variant = callPackage ../by-name/fo/foo/package.nix {
-                        //     someFlag = true;
-                        //   }
-                        //
-                        // While such definitions could be moved to `pkgs/by-name` by using
-                        // `.override { someFlag = true; }` instead, this changes the semantics in
-                        // relation with overlays, so migration is generally not possible.
-                        //
-                        // See also "package variants" in RFC 140:
-                        // https://github.com/NixOS/rfcs/blob/master/rfcs/0140-simple-package-paths.md#package-variants
-                        NonApplicable
-                    }
-                    _ => {
-                        // Otherwise, the path is outside `pkgs/by-name`, which means it can be
-                        // migrated
-                        Loose(syntactic_call_package)
+            // At this point, we completed two different checks for whether it's a
+            // `callPackage`
+            match (is_semantic_call_package, optional_syntactic_call_package) {
+                // Something like `<attr> = { }`
+                (false, None)
+                // Something like `<attr> = pythonPackages.callPackage ...`
+                | (false, Some(_))
+                // Something like `<attr> = bar` where `bar = pkgs.callPackage ...`
+                | (true, None) => {
+                    // In all of these cases, it's not possible to migrate the package to `pkgs/by-name`
+                    NonApplicable
+                }
+                // Something like `<attr> = pkgs.callPackage ...`
+                (true, Some(syntactic_call_package)) => {
+                    // It's only possible to migrate such a definitions if..
+                    match syntactic_call_package.relative_path {
+                        Some(ref rel_path) if rel_path.starts_with(utils::BASE_SUBPATH) => {
+                            // ..the path is not already within `pkgs/by-name` like
+                            //
+                            //   foo-variant = callPackage ../by-name/fo/foo/package.nix {
+                            //     someFlag = true;
+                            //   }
+                            //
+                            // While such definitions could be moved to `pkgs/by-name` by using
+                            // `.override { someFlag = true; }` instead, this changes the semantics in
+                            // relation with overlays, so migration is generally not possible.
+                            //
+                            // See also "package variants" in RFC 140:
+                            // https://github.com/NixOS/rfcs/blob/master/rfcs/0140-simple-package-paths.md#package-variants
+                            NonApplicable
+                        }
+                        _ => {
+                            // Otherwise, the path is outside `pkgs/by-name`, which means it can be
+                            // migrated
+                            Loose(ratchet::UsesByNameContext {
+                                call_package_argument_info: syntactic_call_package,
+                                file: location.file.to_owned(),
+                                line: location.line,
+                                syntax_node: attrpath_value_node,
+                            })
+                        }
                     }
                 }
             }
+        } else {
+            // Inherit
+            NonApplicable
         }
+
     } else {
         // This catches all the cases not matched by the above `if let`, falling back to not being
         // able to migrate such attributes

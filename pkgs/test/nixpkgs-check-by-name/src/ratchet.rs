@@ -2,6 +2,11 @@
 //!
 //! Each type has a `compare` method that validates the ratchet checks for that item.
 
+use rowan::Language;
+use rowan::NodeOrToken::Token;
+use rowan::GreenToken;
+use crate::NixFileStore;
+use std::path::PathBuf;
 use crate::nix_file::CallPackageArgumentInfo;
 use crate::nixpkgs_problem::NixpkgsProblem;
 use crate::structure;
@@ -27,6 +32,15 @@ impl Nixpkgs {
                 Package::compare(&name, from.package_map.get(&name), &to.package_map[&name])
             }),
         )
+    }
+
+    pub fn migrate(&self, nix_file_store: &mut NixFileStore) -> anyhow::Result<()> {
+        for name in self.package_names.iter() {
+            let pkg = &self.package_map[name];
+            pkg.migrate(nix_file_store, &name)?
+        }
+        //nix_file_store.render()?;
+        Ok(())
     }
 }
 
@@ -54,6 +68,12 @@ impl Package {
                 &to.uses_by_name,
             ),
         ])
+    }
+
+    pub fn migrate(&self, nix_file_store: &mut NixFileStore, name: &str) -> anyhow::Result<()> {
+        self.manual_definition.migrate(nix_file_store, name)?;
+        self.uses_by_name.migrate(nix_file_store, name)?;
+        Ok(())
     }
 }
 
@@ -85,6 +105,8 @@ pub trait ToNixpkgsProblem {
         optional_from: Option<()>,
         to: &Self::ToContext,
     ) -> NixpkgsProblem;
+
+    fn migrate(nix_file_store: &mut NixFileStore, context: &Self::ToContext, name: &str) -> anyhow::Result<()>;
 }
 
 impl<Context: ToNixpkgsProblem> RatchetState<Context> {
@@ -107,6 +129,14 @@ impl<Context: ToNixpkgsProblem> RatchetState<Context> {
             // - -> Tight (always okay to keep or make the ratchet tight)
             // - Anything involving NotApplicable, where we can't really make any good calls
             _ => Success(()),
+        }
+    }
+
+    fn migrate(&self, nix_file_store: &mut NixFileStore, name: &str) -> anyhow::Result<()> {
+        match self {
+            RatchetState::Loose(context) => Context::migrate(nix_file_store, context, name),
+            RatchetState::Tight => Ok(()),
+            RatchetState::NonApplicable => Ok(()),
         }
     }
 }
@@ -139,6 +169,15 @@ impl ToNixpkgsProblem for ManualDefinition {
             package_name: name.to_owned(),
         }
     }
+
+    fn migrate(nix_file_store: &mut NixFileStore, context: &(), name: &str) -> anyhow::Result<()> {
+        // This migrates only the empty call thing
+        Ok(())
+    }
+
+    // We get a context, need to return either:
+    // - How to automatically migrate
+    // - How to manually migrate
 }
 
 /// The ratchet value of an attribute
@@ -148,8 +187,15 @@ impl ToNixpkgsProblem for ManualDefinition {
 /// It also checks that once a package uses pkgs/by-name, it can't switch back to all-packages.nix
 pub enum UsesByName {}
 
+pub struct UsesByNameContext {
+    pub call_package_argument_info: CallPackageArgumentInfo,
+    pub file: PathBuf,
+    pub line: usize,
+    pub syntax_node: rnix::SyntaxNode,
+}
+
 impl ToNixpkgsProblem for UsesByName {
-    type ToContext = CallPackageArgumentInfo;
+    type ToContext = UsesByNameContext;
 
     fn to_nixpkgs_problem(
         name: &str,
@@ -159,15 +205,86 @@ impl ToNixpkgsProblem for UsesByName {
         if let Some(()) = optional_from {
             NixpkgsProblem::MovedOutOfByName {
                 package_name: name.to_owned(),
-                call_package_path: to.relative_path.clone(),
-                empty_arg: to.empty_arg,
+                call_package_path: to.call_package_argument_info.relative_path.clone(),
+                empty_arg: to.call_package_argument_info.empty_arg,
             }
         } else {
             NixpkgsProblem::NewPackageNotUsingByName {
                 package_name: name.to_owned(),
-                call_package_path: to.relative_path.clone(),
-                empty_arg: to.empty_arg,
+                call_package_path: to.call_package_argument_info.relative_path.clone(),
+                empty_arg: to.call_package_argument_info.empty_arg,
             }
         }
+    }
+
+    // What kind of actions are there?
+    // - Move a path
+    //   Update Nix files that reference that file
+    // - Change a file
+    //   When replacing Nix files:
+    //   - remove an entry into an attribute set expression
+    //
+    //   Actions cannot overlap each other (technically they could, but it complicates stuff)
+
+    fn migrate(nix_file_store: &mut NixFileStore, context: &Self::ToContext, name: &str) -> anyhow::Result<()> {
+        let target = structure::relative_dir_for_package(&name);
+        if let Some(relative_path) = &context.call_package_argument_info.relative_path {
+            eprintln!("Would move {relative_path:?} to {target:?}");
+            
+            if context.call_package_argument_info.empty_arg {
+                eprintln!("Replacing callPackage in {:?} line {:?}", context.file, context.line);
+
+                let nix_file = nix_file_store.get(&context.file)?;
+
+                // The nested indices to get to the entry to replace
+                //let ancestor_indices : Vec<usize> = context.syntax_node.ancestors().map(|n| n.index()).collect();
+
+
+                // We don't need to bother updating the syntax tree
+                // We just need to remember the ranges we want to replace
+                // Make sure they don't overlap
+                // And then do the replacements
+
+                //let c = context.syntax_node.clone_for_update();
+                
+                context.syntax_node.detach();
+                //let attrs_node = context.syntax_node.parent().unwrap();
+                //let index = context.syntax_node.index();
+
+                //let new_green = attrs_node.green().remove_child(index);
+
+                //let x = Token(GreenToken::new(rnix::NixLanguage::kind_to_raw(rnix::SyntaxKind::TOKEN_WHITESPACE), "THISISWHITESPACE"));
+                //let new_green = green.replace_child(0, x);
+                //let new_text = new_green.to_string();
+                //eprintln!("New green node is: {new_text:?}");
+
+                //nix_file.update_root_node(attrs_node.replace_with(new_green));
+
+                //nix_file.render()?;
+                //nix_file.syntax_root.
+                //nix_file.syntax_root = context.syntax_node.replace_with()
+
+                //panic!()
+
+            } else {
+                eprintln!("Would replace callPackage in {:?} line {:?} with `callPackage {target:?} ...`", context.file, context.line);
+            }
+            
+            // This function needs to determine _whether_ we can migrate,
+            // and the concrete steps to doing so
+            // We should always be able to migrate, otherwise we wouldn't be here
+            // This function should only fail if we can't migrate _automatically_
+
+            // Can we migrate raw expressions?
+            // We need to parse the source to figure out if it's actually a callPackage
+            // That might be good to do even before actually..
+            //if self.call_package_path.is_none() {
+            //    eprintln!("No call package path for {name} at {location:?}");
+            //}
+        } else {
+            eprintln!("Manual migration needed for {name}")
+        }
+
+        Ok(())
     }
 }
