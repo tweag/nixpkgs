@@ -804,11 +804,11 @@ with pkgs;
 
   sea-orm-cli = callPackage ../development/tools/sea-orm-cli { };
 
-  vcpkg-tool = callPackage ../by-name/vc/vcpkg-tool/package.nix {
+  r3ctl = callPackage ../by-name/vc/vcpkg-tool/package.nix {
     fmt = fmt_10;
   };
 
-  r3ctl = qt5.callPackage ../tools/misc/r3ctl { };
+  vcpkg-tool = qt5.callPackage ../tools/misc/r3ctl { };
 
   ptouch-print = callPackage ../misc/ptouch-print { };
 
@@ -1734,7 +1734,7 @@ with pkgs;
 
   btc-rpc-explorer = callPackage ../tools/misc/btc-rpc-explorer { };
 
-  butler = callPackage ../by-name/bu/butler/package.nix {
+  butler = (x: x) callPackage ../by-name/bu/butler/package.nix {
     inherit (darwin.apple_sdk.frameworks) Cocoa;
     buildGoModule = buildGo120Module;
   };
