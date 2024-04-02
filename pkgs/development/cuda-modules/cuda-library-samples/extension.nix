@@ -1,4 +1,4 @@
-{ hostPlatform, lib }:
+{hostPlatform,lib}:
 let
   # Samples are built around the CUDA Toolkit, which is not available for
   # aarch64. Check for both CUDA version and platform.
