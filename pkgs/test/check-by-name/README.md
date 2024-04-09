@@ -16,12 +16,10 @@ Arguments:
 - `BASE_BRANCH`: The base branch to use, e.g. master or release-23.11
 - `REPOSITORY`: The repository to fetch the base branch from, defaults to https://github.com/NixOS/nixpkgs.git
 
-## `./update-pinned-tool.sh`
+## `./update-pinned-tool.sh [VERSION]`
 
-Updates the pinned [nixpkgs-check-by-name tool](https://github.com/NixOS/nixpkgs-check-by-name) in [`./pinned-version.txt`](./pinned-version.txt) to the latest [release](https://github.com/NixOS/nixpkgs-check-by-name/releases).
+Updates the pinned [nixpkgs-check-by-name tool](https://github.com/NixOS/nixpkgs-check-by-name) in [`./pinned-version.txt`](./pinned-version.txt) to version `VERSION` if given, and the latest [release](https://github.com/NixOS/nixpkgs-check-by-name/releases) otherwise.
 Each release contains a pre-built x86_64-linux version of the tool which is used by CI.
-
-This script currently needs to be called manually when the CI tooling needs to be updated.
 
 Why not just build the tooling right from the PRs Nixpkgs version?
 - Because it allows CI to check all PRs, even if they would break the CI tooling.
