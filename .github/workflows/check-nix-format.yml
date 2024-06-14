@@ -13,7 +13,6 @@ permissions:
 jobs:
   nixos:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'NixOS'
     steps:
       - name: Get list of changed files from PR
         env:
