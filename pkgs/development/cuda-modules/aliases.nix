@@ -1,7 +1,7 @@
 # Packges which have been deprecated or removed from cudaPackages
 final: prev:
 let
-  mkRenamed =
+  mkRenamed  =
     oldName: newName: newPkg:
     final.lib.warn "cudaPackages.${oldName} is deprecated, use ${newName} instead" newPkg;
 in
