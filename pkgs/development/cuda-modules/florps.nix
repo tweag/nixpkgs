@@ -7,7 +7,7 @@
   cudaForwardCompat ? (config.cudaForwardCompat or true),
   lib,
   cudaVersion,
-  stdenv,
+  stdenv ,
   # gpus :: List Gpu
   gpus,
 }:
