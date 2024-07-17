@@ -3,7 +3,7 @@
 {
   description = "A collection of packages for the Nix package manager";
 
-  outputs = {   self }:
+  outputs = { self }:
     let
       libVersionInfoOverlay = import ./lib/flake-version-info.nix self;
       lib = (import ./lib).extend libVersionInfoOverlay;
