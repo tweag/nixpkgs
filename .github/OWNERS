@@ -37,7 +37,7 @@
 /lib/tests/modules          @infinisil @roberth
 
 # Nixpkgs Internals
-/default.nix                                     @Ericson2314
+/default.nix                                     @infinisil @tweag/nixpkgs-test-team
 /pkgs/top-level/default.nix                      @Ericson2314
 /pkgs/top-level/impure.nix                       @Ericson2314
 /pkgs/top-level/stage.nix                        @Ericson2314
