@@ -4,6 +4,7 @@ if ! builtins ? nixVersion || builtins.compareVersions requiredVersion builtins.
 
   abort ''
 
+
     This version of Nixpkgs requires Nix >= ${requiredVersion}, please upgrade:
 
     - If you are running NixOS, `nixos-rebuild' can be used to upgrade your system.
