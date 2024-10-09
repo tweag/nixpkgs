@@ -36,6 +36,8 @@ prRepo=$(jq -r .head.repo.full_name <<< "$prInfo")
 log "PR repo: $prRepo"
 prBranch=$(jq -r .head.ref <<< "$prInfo")
 log "PR branch: $prBranch"
+prRev=$(jq -r .head.sha <<< "$prInfo")
+log "PR revision: $prRev"
 prAuthor=$(jq -r .user.login <<< "$prInfo")
 log "PR author: $prAuthor"
 
@@ -60,7 +62,7 @@ git -C "$tmp/nixpkgs.git" config remote.fork.promisor true
 # This should not conflict with any refs in Nixpkgs
 headRef=refs/remotes/fork/pr
 # Only fetch into a remote ref, because the local ref namespace is used by Nixpkgs, don't want any conflicts
-git -C "$tmp/nixpkgs.git" fetch --no-tags fork "$prBranch":"$headRef"
+git -C "$tmp/nixpkgs.git" fetch --no-tags fork "$prRev":"$headRef"
 
 log "Checking correctness of the base branch"
 if ! "$SCRIPT_DIR"/verify-base-branch.sh "$tmp/nixpkgs.git" "$headRef" "$baseRepo" "$baseBranch" "$prRepo" "$prBranch" | tee "$tmp/invalid-base-error" >&2; then
