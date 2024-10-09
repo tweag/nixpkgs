@@ -19,20 +19,17 @@ effect() {
     fi
 }
 
-if (( $# < 3 )); then
-    log "Usage: $0 GITHUB_REPO PR_NUMBER OWNERS_FILE"
+if (( $# < 2 )); then
+    log "Usage: $0 OWNERS_FILE PR_INFO"
     exit 1
 fi
-baseRepo=$1
-prNumber=$2
-ownersFile=$3
+ownersFile=$1
+prInfo=$2
 
-log "Fetching PR info"
-prInfo=$(gh api \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "/repos/$baseRepo/pulls/$prNumber")
-
+baseRepo=$(jq -r .base.repo.full_name <<< "$prInfo")
+log "Base repo: $baseRepo"
+prNumber=$(jq -r .number <<< "$prInfo")
+log "PR number: $prNumber"
 baseBranch=$(jq -r .base.ref <<< "$prInfo")
 log "Base branch: $baseBranch"
 prRepo=$(jq -r .head.repo.full_name <<< "$prInfo")

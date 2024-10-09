@@ -82,6 +82,7 @@ jobs:
       run: nix-build ci -A requestReviews
 
     - name: Request reviews
-      run: result/bin/request-reviews.sh ${{ github.repository }} ${{ github.event.number }} "$OWNERS_FILE"
+      run: result/bin/request-reviews.sh "$OWNERS_FILE" "$PR_INFO"
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        PR_INFO: ${{ toJSON(github.event.pull_request) }}
