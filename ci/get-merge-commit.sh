@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# This checks for mergeability of a pull request as recommended in
-# https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database?apiVersion=2022-11-28#checking-mergeability-of-pull-requests
+# See ./README.md for docs
 
 set -euo pipefail
 
@@ -27,7 +26,7 @@ while true; do
     state=$(jq -r .state <<< "$prInfo")
     if [[ "$state" != open ]]; then
         log "PR is not open anymore"
-        exit 2
+        exit 1
     fi
 
     mergeable=$(jq -r .mergeable <<< "$prInfo")
@@ -36,7 +35,7 @@ while true; do
     if [[ "$mergeable" == "null" ]]; then
         if (( retryCount == 0 )); then
             log "Not retrying anymore. It's likely that GitHub is having internal issues: check https://www.githubstatus.com/"
-            exit 1
+            exit 3
         else
             (( retryCount -= 1 )) || true
 
@@ -57,5 +56,5 @@ if [[ "$mergeable" == "true" ]]; then
     echo "$mergedSha"
 else
     log "The PR has a merge conflict"
-    exit 1
+    exit 2
 fi
