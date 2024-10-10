@@ -22,6 +22,14 @@ while true; do
         -H "Accept: application/vnd.github+json" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
         "/repos/$repo/pulls/$prNumber")
+
+    # Non-open PRs won't have their mergeability computed no matter what
+    state=$(jq -r .state <<< "$prInfo")
+    if [[ "$state" != open ]]; then
+        log "PR is not open anymore"
+        exit 2
+    fi
+
     mergeable=$(jq -r .mergeable <<< "$prInfo")
     mergedSha=$(jq -r .merge_commit_sha <<< "$prInfo")
 
