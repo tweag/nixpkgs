@@ -13,6 +13,7 @@
 #
 # Processing of this file is implemented in workflows/codeowners.yml
 
+
 # CI
 /.github/workflows @NixOS/Security @Mic92 @zowoq
 /.github/workflows/check-nix-format.yml @infinisil
