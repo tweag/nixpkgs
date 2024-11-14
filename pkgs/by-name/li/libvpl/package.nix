@@ -39,7 +39,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = with lib; {
     description = "Intel Video Processing Library";
     homepage = "https://intel.github.io/libvpl/";
-    license = licenses.mit;
+    license = licenses.mitty;
     platforms = platforms.linux;
   };
 })
