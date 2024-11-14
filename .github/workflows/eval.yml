@@ -1,0 +1,53 @@
+name: Eval
+
+on: pull_request_target
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: eval-check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        system: [x86_64-linux, aarch64-linux, aarch64-darwin, x86_64-darwin]
+    steps:
+      # Important: Because of `pull_request_target`, this doesn't check out the PR,
+      # but rather the base branch of the PR, which is needed so we don't run untrusted code
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: base
+          sparse-checkout: ci
+      - name: Resolving the merge commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if mergedSha=$(base/ci/get-merge-commit.sh ${{ github.repository }} ${{ github.event.number }}); then
+            echo "Checking the merge commit $mergedSha"
+            echo "mergedSha=$mergedSha" >> "$GITHUB_ENV"
+          else
+            # Skipping so that no notifications are sent
+            echo "Skipping the rest..."
+          fi
+          rm -rf base
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        # Add this to _all_ subsequent steps to skip them
+        if: env.mergedSha
+        with:
+          ref: ${{ env.mergedSha }}
+
+      - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        if: env.mergedSha
+
+      - name: Enable swap
+        if: env.mergedSha
+        run: |
+          sudo fallocate -l 10G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
+      - name: Check eval
+        if: env.mergedSha
+        run: ./ci/eval-nixpkgs.sh --system "${{ matrix.system }}"
