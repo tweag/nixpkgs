@@ -44,12 +44,10 @@ main() {
 
     (
         set +e
-        parallel -j "$CORES" \
-            nix-env -qaP --no-name --out-path --arg checkMeta true --arg includeBroken true \
+        seq 0 $((NUM_CHUNKS - 1)) | xargs -P "$CORES" -I {} nix-env -qaP --no-name --out-path --arg checkMeta true --arg includeBroken true \
             --arg systems "[\"$system\"]" \
             -f "$NIXPKGS_PATH"/ci/parallel.nix --arg attrPathFile "$tmpdir"/paths.json \
-            --arg numChunks "$NUM_CHUNKS" --show-trace --arg myChunk \
-            -- $(seq 0 $((NUM_CHUNKS - 1))) >"$tmpdir/paths"
+            --arg numChunks "$NUM_CHUNKS" --show-trace --arg myChunk {} >"$tmpdir/paths"
         echo $? >"$tmpdir/exit-code"
     ) &
     pid=$!
