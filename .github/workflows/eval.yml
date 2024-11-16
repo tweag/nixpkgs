@@ -40,14 +40,6 @@ jobs:
       - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
         if: env.mergedSha
 
-      - name: Enable swap
-        if: env.mergedSha
-        run: |
-          sudo fallocate -l 10G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-
       - name: Check eval
         if: env.mergedSha
         run: ./ci/eval-nixpkgs.sh --system "${{ matrix.system }}"
