@@ -66,7 +66,23 @@ main() {
         free -g >&2
         sleep 20
     done
-    jq --raw-input --slurp 'split("\n") | map(select(. != "") | split(" ") | map(select(. != "")) | { key: .[0], value: .[1] }) | from_entries' "$tmpdir/paths"
+
+    # Extract derivation outputs for each attribute into a JSON object
+    # i.e. { "attr1": { "out": "/nix/store/...", "dev": "/nix/store/..." }, ... }
+    jq --raw-input --slurp '
+    split("\n") |
+    map(select(. != "") | split(" ") | map(select(. != ""))) |
+    map(
+        {
+            key: .[0],
+            value: .[1] | split(";") | map(split("=") |
+               if length == 1 then
+                   { key: "out", value: .[0] }
+               else
+                   { key: .[0], value: .[1] }
+               end) | from_entries}
+    ) | from_entries
+    ' "$tmpdir/paths"
     exit "$(cat "$tmpdir/exit-code")"
 }
 
