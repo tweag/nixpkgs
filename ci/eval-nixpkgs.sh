@@ -3,24 +3,31 @@
 
 set -euxo pipefail
 
-system="x86_64-linux"
-CORES=$(nproc)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 NIXPKGS_PATH="$(readlink -f "$SCRIPT_DIR"/..)"
 
+system="x86_64-linux"
+quick_test=0
+CORES=$(nproc)
+
 parseArgs() {
     while [[ $# -gt 0 ]]; do
-        case $1 in
+        arg=$1
+        shift
+        case "$arg" in
         --system)
-            system=$2
-            shift 2
+            system=$1
+            shift 1
             ;;
         --cores)
-            CORES=$2
-            shift 2
+            CORES=$1
+            shift 1
+            ;;
+        --quick-test)
+            quick_test=1
             ;;
         *)
-            echo "Unknown argument: $1"
+            echo "Unknown argument: $arg"
             exit 1
             ;;
         esac
@@ -40,14 +47,18 @@ main() {
     # 2. Since the amount of time needed for the jobs is *not* balanced
     # this minimizes the "tail latency" for the very last job to finish
     # (on one core) by making the job size smaller.
-    NUM_CHUNKS=$((4 * CORES))
+    local num_chunks=$((4 * CORES))
+    local seq_end=$((num_chunks - 1))
+    if [[ $quick_test -eq 1 ]]; then
+        seq_end=0
+    fi
 
     (
         set +e
-        seq 0 $((NUM_CHUNKS - 1)) | xargs -P "$CORES" -I {} nix-env -qaP --no-name --out-path --arg checkMeta true --arg includeBroken true \
+        seq 0 $seq_end | xargs -P "$CORES" -I {} nix-env -qaP --no-name --out-path --arg checkMeta true --arg includeBroken true \
             --arg systems "[\"$system\"]" \
             -f "$NIXPKGS_PATH"/ci/parallel.nix --arg attrPathFile "$tmpdir"/paths.json \
-            --arg numChunks "$NUM_CHUNKS" --show-trace --arg myChunk {} >"$tmpdir/paths"
+            --arg numChunks "$num_chunks" --show-trace --arg myChunk {} >"$tmpdir/paths"
         echo $? >"$tmpdir/exit-code"
     ) &
     pid=$!
