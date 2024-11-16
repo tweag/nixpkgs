@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#!nix-shell -i bash -p moreutils -I nixpkgs=channel:nixpkgs-unstable
+#!nix-shell -i bash -p coreutils moreutils -I nixpkgs=channel:nixpkgs-unstable
 
 set -euxo pipefail
 
