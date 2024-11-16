@@ -4,6 +4,7 @@
 set -euxo pipefail
 
 system="x86_64-linux"
+CORES=$(nproc)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 NIXPKGS_PATH="$(readlink -f "$SCRIPT_DIR"/..)"
 
@@ -12,6 +13,10 @@ parseArgs() {
         case $1 in
         --system)
             system=$2
+            shift 2
+            ;;
+        --cores)
+            CORES=$2
             shift 2
             ;;
         *)
@@ -29,7 +34,6 @@ main() {
 
     nix-instantiate --eval --strict --json --arg enableWarnings false "$NIXPKGS_PATH"/pkgs/top-level/release-attrpaths-superset.nix -A paths >"$tmpdir/paths.json"
 
-    CORES=$(nproc)
     # Originally @amjoseph: note that the number of processes spawned is four times
     # the number of cores -- this helps in two ways:
     # 1. Keeping cores busy while I/O operations are in flight
