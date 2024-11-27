@@ -10,7 +10,7 @@
 }:
 
 stdenv.mkDerivation (finalAttrs: {
-  pname = "hello";
+  pname = "hello-florp";
   version = "2.12.1";
 
   src = fetchurl {
