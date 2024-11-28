@@ -11,6 +11,7 @@ rec {
     into
       {
         name = "hello";
+        packagePath = [ "hello" ];
         platform = "aarch64-linux";
       }
   */
@@ -30,6 +31,9 @@ rec {
       null
     else
       {
+        # [ "python312Packages" "numpy" ]
+        inherit packagePath;
+
         # python312Packages.numpy
         inherit name;
 
@@ -52,12 +56,12 @@ rec {
       ]
     into
       [
-        { name = "hello"; platform = "aarch64-linux"; }
-        { name = "hello"; platform = "x86_64-linux"; }
-        { name = "hello"; platform = "aarch64-darwin"; }
-        { name = "hello"; platform = "x86_64-darwin"; }
-        { name = "bye"; platform = "aarch64-darwin"; }
-        { name = "bye"; platform = "x86_64-darwin"; }
+        { name = "hello"; platform = "aarch64-linux"; packagePath = [ ... ]; }
+        { name = "hello"; platform = "x86_64-linux"; packagePath = [ ... ]; }
+        { name = "hello"; platform = "aarch64-darwin"; packagePath = [ ... ]; }
+        { name = "hello"; platform = "x86_64-darwin"; packagePath = [ ... ]; }
+        { name = "bye"; platform = "aarch64-darwin"; packagePath = [ ... ]; }
+        { name = "bye"; platform = "x86_64-darwin"; packagePath = [ ... ]; }
       ]
   */
   convertToPackagePlatformAttrs =
