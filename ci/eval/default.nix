@@ -25,6 +25,7 @@ let
           "pkgs"
           ".version"
           "ci/supportedSystems.nix"
+          "ci/eval/maintainers.nix"
         ]
       );
     };
@@ -239,11 +240,17 @@ let
       '';
 
   compare =
-    { beforeResultDir, afterResultDir }:
+    {
+      beforeResultDir,
+      afterResultDir,
+      changedPathsJson,
+      baseNixpkgs,
+    }:
     runCommand "compare"
       {
         nativeBuildInputs = [
           jq
+          nix
         ];
       }
       ''
@@ -252,6 +259,17 @@ let
           --slurpfile before ${beforeResultDir}/outpaths.json \
           --slurpfile after ${afterResultDir}/outpaths.json \
           > $out/changed-paths.json
+
+        jq '.attrdiff | [ .changed[] , .removed[] ] | map(split("."))' $out/changed-paths.json > changed-attrs.json
+
+        export NIX_STATE_DIR=$(mktemp -d)
+        # Removed and changed
+        # Kind of important: Maintainers specified in the old branch should be pinged
+        nix-instantiate --eval --strict --json ${nixpkgs}/ci/eval/maintainers.nix \
+          --arg changedattrsjson ./changed-attrs.json \
+          --arg changedpathsjson ${changedPathsJson} \
+          --arg baseNixpkgs ${baseNixpkgs} \
+          > $out/maintainers.json \
 
         # TODO: Compare eval stats
       '';

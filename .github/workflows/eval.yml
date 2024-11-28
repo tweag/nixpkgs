@@ -145,6 +145,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ needs.attrs.outputs.mergedSha }}
+          fetch-depth: 2
           path: nixpkgs
 
       - name: Install Nix
@@ -206,9 +207,15 @@ jobs:
       - name: Compare against the base branch
         if: steps.baseRunId.outputs.baseRunId
         run: |
+          git -C nixpkgs worktree add ../base ${{ needs.attrs.outputs.baseSha }}
+          git -C nixpkgs diff --name-only --merge-base ${{ needs.attrs.outputs.baseSha }} ${{ needs.attrs.outputs.mergedSha }} \
+            | jq --raw-input . > touched-files.json
+
           nix-build nixpkgs/ci -A eval.compare \
             --arg beforeResultDir ./baseResult \
             --arg afterResultDir ./prResult \
+            --arg changedPathsJson ./touched-files.json \
+            --arg baseNixpkgs ./base \
             -o comparison
 
           # TODO: Request reviews from maintainers for packages whose files are modified in the PR
@@ -240,6 +247,12 @@ jobs:
           gh api \
             --method POST \
             /repos/${{ github.repository }}/issues/${{ github.event.number }}/labels \
-            --input <(jq -c '{ labels: .labels }' comparison/changed-paths.json)
+            --input <(jq '{ labels: .labels }' comparison/changed-paths.json)
+
+          gh api \
+            --method POST \
+            /repos/${{ github.repository }}/pulls/${{ github.event.number }}/requested_reviewers \
+            --input <(jq '{ reviewers: keys }' tmp/reviewers.json)
+
         env:
           GH_TOKEN: ${{ github.token }}
