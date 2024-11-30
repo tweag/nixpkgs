@@ -9,7 +9,7 @@ let
 
 in
 stdenv.mkDerivation rec {
-  pname = "brscan5";
+  pname = "rscan5";
   version = "1.3.1-0";
   src = {
     "i686-linux" = fetchurl {
