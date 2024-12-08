@@ -35,7 +35,6 @@
   libvdpau,
   rustPlatform,
   stdenv,
-  zenity,
   copyDesktopItems,
   makeDesktopItem,
   replaceVars,
@@ -160,7 +159,6 @@ flutter324.buildFlutterApplication {
     --prefix LD_LIBRARY_PATH : "$out/app/${pname}/lib" \
     --prefix PATH : "${
       lib.makeBinPath [
-        zenity
       ]
     }"
   '';
