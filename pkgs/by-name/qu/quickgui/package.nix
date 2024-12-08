@@ -4,7 +4,6 @@
 , lib
 , flutter
 , quickemu
-, zenity
 }:
 flutter.buildFlutterApplication rec {
   pname = "quickgui";
@@ -22,7 +21,7 @@ flutter.buildFlutterApplication rec {
     window_size = "sha256-XelNtp7tpZ91QCEcvewVphNUtgQX7xrp5QP0oFo6DgM=";
   };
 
-  extraWrapProgramArgs = "--prefix PATH : ${lib.makeBinPath [ quickemu zenity ]}";
+  extraWrapProgramArgs = "--prefix PATH : ${lib.makeBinPath [ quickemu ]}";
 
   nativeBuildInputs = [ copyDesktopItems ];
 
