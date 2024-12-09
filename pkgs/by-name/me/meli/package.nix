@@ -1,25 +1,26 @@
-{ stdenv
-, lib
-, fetchzip
-, fetchpatch
-, rustPlatform
+{
+  stdenv,
+  lib,
+  fetchzip,
+  fetchpatch,
+  rustPlatform,
 
-# native build inputs
-, pkg-config
-, installShellFiles
-, makeWrapper
-, mandoc
-, rustfmt
-, file
+  # native build inputs
+  pkg-config,
+  installShellFiles,
+  makeWrapper,
+  mandoc,
+  rustfmt,
+  file,
 
-# build inputs
-, openssl
-, dbus
-, sqlite
+  # build inputs
+  openssl,
+  dbus,
+  sqlite,
 
-# runtime deps
-, gpgme
-, gnum4
+  # runtime deps
+  gpgme,
+  gnum4,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -38,7 +39,7 @@ rustPlatform.buildRustPackage rec {
   cargoHash = "sha256-us/jlsRbg0Y6FwznbRZeqK1TwwgL1uBwBdyneyvdI6Q=";
 
   # Needed to get openssl-sys to use pkg-config
-  OPENSSL_NO_VENDOR=1;
+  OPENSSL_NO_VENDOR = 1;
 
   nativeBuildInputs = [
     pkg-config
@@ -81,7 +82,10 @@ rustPlatform.buildRustPackage rec {
     mainProgram = "meli";
     homepage = "https://meli.delivery";
     license = licenses.gpl3;
-    maintainers = with maintainers; [ _0x4A6F matthiasbeyer ];
+    maintainers = with maintainers; [
+      _0x4A6F
+      matthiasbeyer
+    ];
     platforms = platforms.linux ++ platforms.darwin;
   };
 }

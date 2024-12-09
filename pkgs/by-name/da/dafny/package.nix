@@ -1,10 +1,11 @@
-{ lib
-, buildDotnetModule
-, fetchFromGitHub
-, writeScript
-, jdk11
-, z3
-, dotnetCorePackages
+{
+  lib,
+  buildDotnetModule,
+  fetchFromGitHub,
+  writeScript,
+  jdk11,
+  z3,
+  dotnetCorePackages,
 }:
 
 buildDotnetModule rec {
@@ -24,12 +25,11 @@ buildDotnetModule rec {
       runtimeJarVersion = "4.6.0";
     in
     ''
-      cp ${
-        writeScript "fake-gradlew-for-dafny" ''
-          mkdir -p build/libs/
-          javac $(find -name "*.java" | grep "^./src/main") -d classes
-          jar cf build/libs/DafnyRuntime-${runtimeJarVersion}.jar -C classes dafny
-        ''} Source/DafnyRuntime/DafnyRuntimeJava/gradlew
+      cp ${writeScript "fake-gradlew-for-dafny" ''
+        mkdir -p build/libs/
+        javac $(find -name "*.java" | grep "^./src/main") -d classes
+        jar cf build/libs/DafnyRuntime-${runtimeJarVersion}.jar -C classes dafny
+      ''} Source/DafnyRuntime/DafnyRuntimeJava/gradlew
 
       # Needed to fix
       # "error NETSDK1129: The 'Publish' target is not supported without

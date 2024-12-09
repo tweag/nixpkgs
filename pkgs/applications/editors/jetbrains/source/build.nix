@@ -1,31 +1,32 @@
-{ fetchFromGitHub
-, fetchurl
-, lib
-, linkFarm
-, makeWrapper
-, runCommand
-, stdenv
-, stdenvNoCC
-, rustPlatform
+{
+  fetchFromGitHub,
+  fetchurl,
+  lib,
+  linkFarm,
+  makeWrapper,
+  runCommand,
+  stdenv,
+  stdenvNoCC,
+  rustPlatform,
 
-, ant
-, cmake
-, glib
-, jetbrains
-, kotlin
-, libdbusmenu
-, maven
-, p7zip
-, pkg-config
-, xorg
+  ant,
+  cmake,
+  glib,
+  jetbrains,
+  kotlin,
+  libdbusmenu,
+  maven,
+  p7zip,
+  pkg-config,
+  xorg,
 
-, buildVer
-, buildType
-, ideaHash
-, androidHash
-, jpsHash
-, restarterHash
-, mvnDeps
+  buildVer,
+  buildType,
+  ideaHash,
+  androidHash,
+  jpsHash,
+  restarterHash,
+  mvnDeps,
 }:
 
 let
@@ -76,8 +77,15 @@ let
   libdbm = stdenv.mkDerivation {
     pname = "libdbm";
     version = buildVer;
-    nativeBuildInputs = [ cmake pkg-config ];
-    buildInputs = [ glib xorg.libX11 libdbusmenu ];
+    nativeBuildInputs = [
+      cmake
+      pkg-config
+    ];
+    buildInputs = [
+      glib
+      xorg.libX11
+      libdbusmenu
+    ];
     inherit src;
     sourceRoot = "${src.name}/native/LinuxGlobalMenu";
     patches = [ ../patches/libdbm-headers.patch ];
@@ -119,27 +127,36 @@ let
     cargoHash = restarterHash;
   };
 
-  jpsRepo = runCommand "jps-bootstrap-repository"
-    {
-      outputHashAlgo = "sha256";
-      outputHashMode = "recursive";
-      outputHash = jpsHash;
-      nativeBuildInputs = [ ant jbr ];
-    } ''
-    ant -Duser.home=$out -Dbuild.dir=/build/tmp -f ${src}/platform/jps-bootstrap/jps-bootstrap-classpath.xml
-    find $out -type f \( \
-      -name \*.lastUpdated \
-      -o -name resolver-status.properties \
-      -o -name _remote.repositories \) \
-      -delete
-  '';
+  jpsRepo =
+    runCommand "jps-bootstrap-repository"
+      {
+        outputHashAlgo = "sha256";
+        outputHashMode = "recursive";
+        outputHash = jpsHash;
+        nativeBuildInputs = [
+          ant
+          jbr
+        ];
+      }
+      ''
+        ant -Duser.home=$out -Dbuild.dir=/build/tmp -f ${src}/platform/jps-bootstrap/jps-bootstrap-classpath.xml
+        find $out -type f \( \
+          -name \*.lastUpdated \
+          -o -name resolver-status.properties \
+          -o -name _remote.repositories \) \
+          -delete
+      '';
 
   jps-bootstrap = stdenvNoCC.mkDerivation {
     pname = "jps-bootstrap";
     version = buildVer;
     inherit src;
     sourceRoot = "${src.name}/platform/jps-bootstrap";
-    nativeBuildInputs = [ ant makeWrapper jbr ];
+    nativeBuildInputs = [
+      ant
+      makeWrapper
+      jbr
+    ];
     patches = [ ../patches/kotlinc-path.patch ];
     postPatch = "sed -i 's|KOTLIN_PATH_HERE|${kotlin}|' src/main/java/org/jetbrains/jpsBootstrap/KotlinCompiler.kt";
     buildPhase = ''
@@ -190,12 +207,32 @@ let
       version = "1.9.22";
     in
     fetchurl {
-      url = repoUrl + "/" + groupId + "/" + artefactId + "/" + version + "/" + artefactId + "-" + version + ".jar";
+      url =
+        repoUrl
+        + "/"
+        + groupId
+        + "/"
+        + artefactId
+        + "/"
+        + version
+        + "/"
+        + artefactId
+        + "-"
+        + version
+        + ".jar";
       hash = "sha256-ZPfEceGoIChDmjIAjjhDZpyMWQ7/DtP9Ll4YIrZN+PM=";
     };
 
-    targetClass = if buildType == "pycharm" then "intellij.pycharm.community.build" else "intellij.idea.community.build";
-    targetName = if buildType == "pycharm" then "PyCharmCommunityInstallersBuildTarget" else "OpenSourceCommunityInstallersBuildTarget";
+  targetClass =
+    if buildType == "pycharm" then
+      "intellij.pycharm.community.build"
+    else
+      "intellij.idea.community.build";
+  targetName =
+    if buildType == "pycharm" then
+      "PyCharmCommunityInstallersBuildTarget"
+    else
+      "OpenSourceCommunityInstallersBuildTarget";
 
 in
 stdenvNoCC.mkDerivation rec {
@@ -203,7 +240,11 @@ stdenvNoCC.mkDerivation rec {
   version = buildVer;
   name = "${pname}-${version}.tar.gz";
   inherit src;
-  nativeBuildInputs = [ p7zip jbr jps-bootstrap ];
+  nativeBuildInputs = [
+    p7zip
+    jbr
+    jps-bootstrap
+  ];
   repo = mvnRepo;
 
   patches = [

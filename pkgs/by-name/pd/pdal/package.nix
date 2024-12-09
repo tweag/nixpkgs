@@ -1,31 +1,32 @@
-{ lib
-, stdenv
-, callPackage
-, fetchFromGitHub
-, fetchpatch
-, fetchurl
-, testers
+{
+  lib,
+  stdenv,
+  callPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  fetchurl,
+  testers,
 
-, enableE57 ? lib.meta.availableOn stdenv.hostPlatform libe57format
+  enableE57 ? lib.meta.availableOn stdenv.hostPlatform libe57format,
 
-, cmake
-, curl
-, gdal
-, hdf5-cpp
-, laszip
-, libe57format
-, libgeotiff
-, libtiff
-, libxml2
-, openscenegraph
-, pkg-config
-, postgresql
-, proj
-, sqlite
-, tiledb
-, xercesc
-, zlib
-, zstd
+  cmake,
+  curl,
+  gdal,
+  hdf5-cpp,
+  laszip,
+  libe57format,
+  libgeotiff,
+  libtiff,
+  libxml2,
+  openscenegraph,
+  pkg-config,
+  postgresql,
+  proj,
+  sqlite,
+  tiledb,
+  xercesc,
+  zlib,
+  zstd,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -52,25 +53,27 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
   ];
 
-  buildInputs = [
-    curl
-    gdal
-    hdf5-cpp
-    laszip
-    libgeotiff
-    libtiff
-    (libxml2.override { enableHttp = true; })
-    openscenegraph
-    postgresql
-    proj
-    sqlite
-    tiledb
-    xercesc
-    zlib
-    zstd
-  ] ++ lib.optionals enableE57 [
-    libe57format
-  ];
+  buildInputs =
+    [
+      curl
+      gdal
+      hdf5-cpp
+      laszip
+      libgeotiff
+      libtiff
+      (libxml2.override { enableHttp = true; })
+      openscenegraph
+      postgresql
+      proj
+      sqlite
+      tiledb
+      xercesc
+      zlib
+      zstd
+    ]
+    ++ lib.optionals enableE57 [
+      libe57format
+    ];
 
   cmakeFlags = [
     "-DBUILD_PLUGIN_E57=${if enableE57 then "ON" else "OFF"}"
@@ -121,10 +124,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   # Add binary test file that we can’t apply from the patch.
   postPatch = ''
-    ln -s ${fetchurl {
-      url = "https://github.com/PDAL/PDAL/raw/e6df3aa21f84ea49c79c338b87fe2e2797f4e44f/test/data/gdal/1234_red_0_green_0_blue.tif";
-      hash = "sha256-x/jHMhZTKmQxlTkswDGszhBIfP/qgY0zJ8QIz+wR5S4=";
-    }} test/data/gdal/1234_red_0_green_0_blue.tif
+    ln -s ${
+      fetchurl {
+        url = "https://github.com/PDAL/PDAL/raw/e6df3aa21f84ea49c79c338b87fe2e2797f4e44f/test/data/gdal/1234_red_0_green_0_blue.tif";
+        hash = "sha256-x/jHMhZTKmQxlTkswDGszhBIfP/qgY0zJ8QIz+wR5S4=";
+      }
+    } test/data/gdal/1234_red_0_green_0_blue.tif
   '';
 
   checkPhase = ''

@@ -26,14 +26,14 @@ buildDotnetModule rec {
     hash = "sha512-nWkPgVYdnBJibyJRdLPe3O3RioDPbzumSritRejmr4CeiPb7aUTON7HjivcV/GKor1guEYu+TJ+QxYrqO/eppg==";
   };
 
-  patches = [./remove-project.patch];
+  patches = [ ./remove-project.patch ];
 
   dotnet-sdk = dotnetCorePackages.sdk_6_0;
 
   nugetDeps = ./deps.nix;
 
   projectFile = "OpenTracker.sln";
-  executables = ["OpenTracker"];
+  executables = [ "OpenTracker" ];
 
   doCheck = true;
   disabledTests = [
@@ -86,6 +86,6 @@ buildDotnetModule rec {
     license = licenses.mit;
     maintainers = [ ];
     mainProgram = "OpenTracker";
-    platforms = ["x86_64-linux"];
+    platforms = [ "x86_64-linux" ];
   };
 }

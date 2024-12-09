@@ -1,10 +1,23 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 let
   cfg = config.services.cockpit;
-  inherit (lib) types mkEnableOption mkOption mkIf literalMD mkPackageOption;
-  settingsFormat = pkgs.formats.ini {};
-in {
+  inherit (lib)
+    types
+    mkEnableOption
+    mkOption
+    mkIf
+    literalMD
+    mkPackageOption
+    ;
+  settingsFormat = pkgs.formats.ini { };
+in
+{
   options = {
     services.cockpit = {
       enable = mkEnableOption "Cockpit";
@@ -16,7 +29,7 @@ in {
       settings = lib.mkOption {
         type = settingsFormat.type;
 
-        default = {};
+        default = { };
 
         description = ''
           Settings for cockpit that will be saved in /etc/cockpit/cockpit.conf.
@@ -49,7 +62,7 @@ in {
     # generate cockpit settings
     environment.etc."cockpit/cockpit.conf".source = settingsFormat.generate "cockpit.conf" cfg.settings;
 
-    security.pam.services.cockpit = {};
+    security.pam.services.cockpit = { };
 
     networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
 
@@ -70,7 +83,10 @@ in {
     systemd.sockets."cockpit-wsinstance-https@" = {
       unitConfig = {
         Description = "Socket for Cockpit Web Service https instance %I";
-        BindsTo = [ "cockpit.service" "cockpit-wsinstance-https@%i.service" ];
+        BindsTo = [
+          "cockpit.service"
+          "cockpit-wsinstance-https@%i.service"
+        ];
         # clean up the socket after the service exits, to prevent fd leak
         # this also effectively prevents a DoS by starting arbitrarily many sockets, as
         # the services are resource-limited by system-cockpithttps.slice
@@ -86,7 +102,7 @@ in {
     # Translation from $out/lib/systemd/system/cockpit-wsinstance-https@.service
     systemd.services."cockpit-wsinstance-https@" = {
       description = "Cockpit Web Service https instance %I";
-      bindsTo = [ "cockpit.service"];
+      bindsTo = [ "cockpit.service" ];
       path = [ cfg.package ];
       documentation = [ "man:cockpit-ws(8)" ];
       serviceConfig = {
@@ -173,14 +189,24 @@ in {
       description = "Cockpit Web Service";
       documentation = [ "man:cockpit-ws(8)" ];
       restartIfChanged = true;
-      path = with pkgs; [ coreutils cfg.package ];
-      requires = [ "cockpit.socket" "cockpit-wsinstance-http.socket" "cockpit-wsinstance-https-factory.socket" ];
-      after = [ "cockpit-wsinstance-http.socket" "cockpit-wsinstance-https-factory.socket" ];
+      path = with pkgs; [
+        coreutils
+        cfg.package
+      ];
+      requires = [
+        "cockpit.socket"
+        "cockpit-wsinstance-http.socket"
+        "cockpit-wsinstance-https-factory.socket"
+      ];
+      after = [
+        "cockpit-wsinstance-http.socket"
+        "cockpit-wsinstance-https-factory.socket"
+      ];
       environment = {
         G_MESSAGES_DEBUG = "cockpit-ws,cockpit-bridge";
       };
       serviceConfig = {
-        RuntimeDirectory="cockpit/tls";
+        RuntimeDirectory = "cockpit/tls";
         ExecStartPre = [
           # cockpit-tls runs in a more constrained environment, these + means that these commands
           # will run with full privilege instead of inside that constrained environment
@@ -196,7 +222,11 @@ in {
         PrivateTmp = true;
         PrivateDevices = true;
         ProtectKernelTunables = true;
-        RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
+        RestrictAddressFamilies = [
+          "AF_UNIX"
+          "AF_INET"
+          "AF_INET6"
+        ];
         MemoryDenyWriteExecute = true;
       };
     };
@@ -216,10 +246,14 @@ in {
       description = "Cockpit motd updater service";
       documentation = [ "man:cockpit-ws(8)" ];
       wants = [ "network.target" ];
-      after = [ "network.target" "cockpit.socket" ];
+      after = [
+        "network.target"
+        "cockpit.socket"
+      ];
     };
 
-    systemd.tmpfiles.rules = [ # From $out/lib/tmpfiles.d/cockpit-tmpfiles.conf
+    systemd.tmpfiles.rules = [
+      # From $out/lib/tmpfiles.d/cockpit-tmpfiles.conf
       "C /run/cockpit/inactive.motd 0640 root root - ${cfg.package}/share/cockpit/motd/inactive.motd"
       "f /run/cockpit/active.motd   0640 root root -"
       "L+ /run/cockpit/motd - - - - inactive.motd"

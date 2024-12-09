@@ -1,5 +1,15 @@
-{ gnustep, lib, fetchFromGitHub, fetchpatch, libxml2, openssl
-, openldap, mariadb, libmysqlclient, postgresql }:
+{
+  gnustep,
+  lib,
+  fetchFromGitHub,
+  fetchpatch,
+  libxml2,
+  openssl,
+  openldap,
+  mariadb,
+  libmysqlclient,
+  postgresql,
+}:
 
 gnustep.stdenv.mkDerivation rec {
   pname = "sope";
@@ -13,9 +23,17 @@ gnustep.stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ gnustep.make ];
-  buildInputs = [ gnustep.base libxml2 openssl ]
+  buildInputs =
+    [
+      gnustep.base
+      libxml2
+      openssl
+    ]
     ++ lib.optional (openldap != null) openldap
-    ++ lib.optionals (mariadb != null) [ libmysqlclient mariadb ]
+    ++ lib.optionals (mariadb != null) [
+      libmysqlclient
+      mariadb
+    ]
     ++ lib.optional (postgresql != null) postgresql;
 
   # Configure directories where files are installed to. Everything is automatically
@@ -30,7 +48,13 @@ gnustep.stdenv.mkDerivation rec {
     EOF
   '';
 
-  configureFlags = [ "--prefix=" "--disable-debug" "--enable-xml" "--with-ssl=ssl" ]
+  configureFlags =
+    [
+      "--prefix="
+      "--disable-debug"
+      "--enable-xml"
+      "--with-ssl=ssl"
+    ]
     ++ lib.optional (openldap != null) "--enable-openldap"
     ++ lib.optional (mariadb != null) "--enable-mysql"
     ++ lib.optional (postgresql != null) "--enable-postgresql";

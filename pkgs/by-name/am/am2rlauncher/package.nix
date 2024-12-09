@@ -1,24 +1,25 @@
-{ lib
-, buildDotnetModule
-, writeShellScript
-, glibc
-, gtk3
-, libappindicator
-, webkitgtk_4_0
-, e2fsprogs
-, libnotify
-, libgit2
-, openssl
-, xdelta
-, file
-, openjdk
-, patchelf
-, fetchFromGitHub
-, buildFHSEnv
-, glib-networking
-, wrapGAppsHook3
-, gsettings-desktop-schemas
-, dotnetCorePackages
+{
+  lib,
+  buildDotnetModule,
+  writeShellScript,
+  glibc,
+  gtk3,
+  libappindicator,
+  webkitgtk_4_0,
+  e2fsprogs,
+  libnotify,
+  libgit2,
+  openssl,
+  xdelta,
+  file,
+  openjdk,
+  patchelf,
+  fetchFromGitHub,
+  buildFHSEnv,
+  glib-networking,
+  wrapGAppsHook3,
+  gsettings-desktop-schemas,
+  dotnetCorePackages,
 }:
 let
   am2r-run = buildFHSEnv {
@@ -26,7 +27,8 @@ let
 
     multiArch = true;
 
-    multiPkgs = pkgs: with pkgs; [
+    multiPkgs =
+      pkgs: with pkgs; [
         (lib.getLib stdenv.cc.cc)
         xorg.libX11
         xorg.libXext
@@ -74,7 +76,11 @@ buildDotnetModule {
 
   nativeBuildInputs = [ wrapGAppsHook3 ];
 
-  buildInputs = [ gtk3 gsettings-desktop-schemas glib-networking ];
+  buildInputs = [
+    gtk3
+    gsettings-desktop-schemas
+    glib-networking
+  ];
 
   patches = [ ./am2r-run-binary.patch ];
 
@@ -82,7 +88,15 @@ buildDotnetModule {
 
   postFixup = ''
     wrapProgram $out/bin/AM2RLauncher.Gtk \
-      --prefix PATH : ${lib.makeBinPath [ am2r-run xdelta file openjdk patchelf ]} \
+      --prefix PATH : ${
+        lib.makeBinPath [
+          am2r-run
+          xdelta
+          file
+          openjdk
+          patchelf
+        ]
+      } \
 
     mkdir -p $out/share/icons
     install -Dm644 $src/AM2RLauncher/distribution/linux/AM2RLauncher.png $out/share/icons/AM2RLauncher.png

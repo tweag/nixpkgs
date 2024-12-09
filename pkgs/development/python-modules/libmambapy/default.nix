@@ -77,7 +77,6 @@ buildPythonPackage rec {
     pypaBuildPhase
   '';
 
-
   pythonImportsCheck = [
     "libmambapy"
     "libmambapy.bindings"

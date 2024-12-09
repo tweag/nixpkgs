@@ -1,6 +1,7 @@
-{ lib
-, stdenv
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -26,10 +27,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://github.com/jbruchon/dev86";
-    description =
-      "C compiler, assembler and linker environment for the production of 8086 executables";
+    description = "C compiler, assembler and linker environment for the production of 8086 executables";
     license = lib.licenses.gpl2Plus;
-    maintainers = with lib.maintainers; [ AndersonTorres sigmasquadron ];
+    maintainers = with lib.maintainers; [
+      AndersonTorres
+      sigmasquadron
+    ];
     platforms = lib.platforms.linux;
   };
 })

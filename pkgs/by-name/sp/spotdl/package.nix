@@ -1,7 +1,8 @@
-{ lib
-, python3
-, fetchFromGitHub
-, ffmpeg
+{
+  lib,
+  python3,
+  fetchFromGitHub,
+  ffmpeg,
 }:
 
 python3.pkgs.buildPythonApplication rec {
@@ -20,25 +21,28 @@ python3.pkgs.buildPythonApplication rec {
 
   pythonRelaxDeps = true;
 
-  dependencies = with python3.pkgs; [
-    beautifulsoup4
-    fastapi
-    mutagen
-    platformdirs
-    pydantic
-    pykakasi
-    python-slugify
-    pytube
-    rapidfuzz
-    requests
-    rich
-    soundcloud-v2
-    spotipy
-    syncedlyrics
-    uvicorn
-    yt-dlp
-    ytmusicapi
-  ] ++ python-slugify.optional-dependencies.unidecode;
+  dependencies =
+    with python3.pkgs;
+    [
+      beautifulsoup4
+      fastapi
+      mutagen
+      platformdirs
+      pydantic
+      pykakasi
+      python-slugify
+      pytube
+      rapidfuzz
+      requests
+      rich
+      soundcloud-v2
+      spotipy
+      syncedlyrics
+      uvicorn
+      yt-dlp
+      ytmusicapi
+    ]
+    ++ python-slugify.optional-dependencies.unidecode;
 
   nativeCheckInputs = with python3.pkgs; [
     pyfakefs
@@ -77,7 +81,10 @@ python3.pkgs.buildPythonApplication rec {
   ];
 
   makeWrapperArgs = [
-    "--prefix" "PATH" ":" (lib.makeBinPath [ ffmpeg ])
+    "--prefix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [ ffmpeg ])
   ];
 
   meta = with lib; {

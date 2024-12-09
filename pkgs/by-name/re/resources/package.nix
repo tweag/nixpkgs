@@ -1,21 +1,22 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, appstream-glib
-, cargo
-, desktop-file-utils
-, meson
-, ninja
-, pkg-config
-, rustPlatform
-, rustc
-, wrapGAppsHook4
-, glib
-, gtk4
-, libadwaita
-, dmidecode
-, util-linux
-, nix-update-script
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  appstream-glib,
+  cargo,
+  desktop-file-utils,
+  meson,
+  ninja,
+  pkg-config,
+  rustPlatform,
+  rustc,
+  wrapGAppsHook4,
+  glib,
+  gtk4,
+  libadwaita,
+  dmidecode,
+  util-linux,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -76,7 +77,10 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/nokyan/resources";
     license = lib.licenses.gpl3Only;
     mainProgram = "resources";
-    maintainers = with lib.maintainers; [ lukas-heiligenbrunner ewuuwe ];
+    maintainers = with lib.maintainers; [
+      lukas-heiligenbrunner
+      ewuuwe
+    ];
     platforms = lib.platforms.linux;
   };
 })

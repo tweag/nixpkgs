@@ -1,17 +1,20 @@
-{ lib
-, stdenv
-, fetchzip
-, makeWrapper
-, dotnetCorePackages
+{
+  lib,
+  stdenv,
+  fetchzip,
+  makeWrapper,
+  dotnetCorePackages,
 }:
 
 let
   pname = "bililiverecorder";
 
-  dotnet = with dotnetCorePackages; combinePackages [
-    runtime_6_0
-    aspnetcore_6_0
-  ];
+  dotnet =
+    with dotnetCorePackages;
+    combinePackages [
+      runtime_6_0
+      aspnetcore_6_0
+    ];
 
   version = "2.13.0";
   hash = "sha256-4OQ2gut/eLk4CXRN5E3Z8XobXsT3bSmtmJEcHzHcz/0=";

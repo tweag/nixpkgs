@@ -18,10 +18,14 @@ buildGoModule rec {
 
   vendorHash = "sha256-+8dOxPG/Q+wuHgRwwWqdphHOuop0W9dVyClyQuh7aRc=";
 
-  ldflags = ["-s" "-w" "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}"];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}"
+  ];
 
-  nativeBuildInputs = [installShellFiles];
-  checkFlags = ["-short"];
+  nativeBuildInputs = [ installShellFiles ];
+  checkFlags = [ "-short" ];
 
   postInstall = ''
     installShellCompletion --cmd headscale \
@@ -30,7 +34,7 @@ buildGoModule rec {
       --zsh <($out/bin/headscale completion zsh)
   '';
 
-  passthru.tests = {inherit (nixosTests) headscale;};
+  passthru.tests = { inherit (nixosTests) headscale; };
 
   meta = with lib; {
     homepage = "https://github.com/juanfont/headscale";
@@ -53,6 +57,12 @@ buildGoModule rec {
     '';
     license = licenses.bsd3;
     mainProgram = "headscale";
-    maintainers = with maintainers; [nkje jk kradalby misterio77 ghuntley];
+    maintainers = with maintainers; [
+      nkje
+      jk
+      kradalby
+      misterio77
+      ghuntley
+    ];
   };
 }

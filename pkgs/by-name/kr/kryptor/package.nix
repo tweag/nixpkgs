@@ -1,7 +1,8 @@
-{ lib
-, buildDotnetModule
-, fetchFromGitHub
-, dotnetCorePackages
+{
+  lib,
+  buildDotnetModule,
+  fetchFromGitHub,
+  dotnetCorePackages,
 }:
 
 buildDotnetModule rec {
@@ -19,9 +20,9 @@ buildDotnetModule rec {
   projectFile = "src/Kryptor.sln";
   nugetDeps = ./deps.nix;
 
-  executables = ["kryptor"];
+  executables = [ "kryptor" ];
 
-  dotnetFlags = ["-p:IncludeNativeLibrariesForSelfExtract=true"];
+  dotnetFlags = [ "-p:IncludeNativeLibrariesForSelfExtract=true" ];
 
   meta = {
     changelog = "https://github.com/samuel-lucas6/Kryptor/releases/tag/v${version}";
