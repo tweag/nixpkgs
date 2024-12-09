@@ -215,3 +215,6 @@ adb9714bd909df283c66bbd641bd631ff50a4260
 
 # treewide: incus packages
 9ab59bb5fb943ad6740f64f5a79eae9642fb8211
+
+# treewide: Nix format pass 1
+6eb16137dfb6ca11e22dce00dcb66e590c9f7085
