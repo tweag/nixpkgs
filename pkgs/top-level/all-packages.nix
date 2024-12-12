@@ -18839,7 +18839,7 @@ with pkgs;
     libcpr = libcpr_1_10_5;
   };
 
-  tree-from-tags = callPackage ../by-name/tr/tree-from-tags/package.nix {
+  tree-from-tags  callPackage ../by-name/tr/tree-from-tags/package.nix {
     ruby = ruby_3_1;
   };
 
