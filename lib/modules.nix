@@ -247,6 +247,11 @@ let
 
       options = merged.matchedOptions;
 
+      freeformDefs = map (def: {
+        file = def.file;
+        value = setAttrByPath def.prefix def.value;
+      }) merged.unmatchedDefns;
+
       config =
         let
 
@@ -255,13 +260,8 @@ let
 
           # If freeformType is set, this is for definitions that don't have an associated option
           freeformConfig =
-            let
-              defs = map (def: {
-                file = def.file;
-                value = setAttrByPath def.prefix def.value;
-              }) merged.unmatchedDefns;
-            in if defs == [] then {}
-            else declaredConfig._module.freeformType.merge prefix defs;
+            if freeformDefs == [] then {}
+            else declaredConfig._module.freeformType.merge prefix freeformDefs;
 
         in if declaredConfig._module.freeformType == null then declaredConfig
           # Because all definitions that had an associated option ended in
@@ -333,7 +333,7 @@ let
         options = checked options;
         config = checked (removeAttrs config [ "_module" ]);
         _module = checked (config._module);
-        inherit extendModules type;
+        inherit extendModules type freeformDefs;
         class = class;
       };
     in result;
