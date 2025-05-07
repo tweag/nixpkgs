@@ -27,6 +27,7 @@ let
 
   inherit (lib.filesystem)
     pathType
+    canonicalPath
     ;
 
   inherit (lib.lists)
@@ -241,10 +242,11 @@ rec {
   _singleton =
     path:
     let
-      type = pathType path;
+      resolvedPath = canonicalPath path;
+      type = pathType resolvedPath;
     in
     if type == "directory" then
-      _create path type
+      _create resolvedPath type
     else
       # This turns a file path ./default.nix into a fileset with
       # - _internalBase: ./.
@@ -252,8 +254,8 @@ rec {
       #     "default.nix" = <type>;
       #   }
       # See ./README.md#single-files
-      _create (dirOf path) {
-        ${baseNameOf path} = type;
+      _create (dirOf resolvedPath) {
+        ${baseNameOf resolvedPath} = type;
       };
 
   # Expand a directory representation to an equivalent one in attribute set form.

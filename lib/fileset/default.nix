@@ -143,6 +143,7 @@ let
 
   inherit (lib.filesystem)
     pathType
+    canonicalPath
     ;
 
   inherit (lib.sources)
@@ -425,10 +426,11 @@ in
     let
       # We cannot rename matched attribute arguments, so let's work around it with an extra `let in` statement
       filesetArg = fileset;
+      resolvedRoot = canonicalPath root;
     in
     let
       fileset = _coerce "lib.fileset.toSource: `fileset`" filesetArg;
-      rootFilesystemRoot = (splitRoot root).root;
+      rootFilesystemRoot = (splitRoot resolvedRoot).root;
       filesetFilesystemRoot = (splitRoot fileset._internalBase).root;
       sourceFilter = _toSourceFilter fileset;
     in
@@ -448,26 +450,26 @@ in
     # See also ../path/README.md
     else if !fileset._internalIsEmptyWithoutBase && rootFilesystemRoot != filesetFilesystemRoot then
       throw ''
-        lib.fileset.toSource: Filesystem roots are not the same for `fileset` and `root` (${toString root}):
+        lib.fileset.toSource: Filesystem roots are not the same for `fileset` and `root` (${toString resolvedRoot}):
             `root`: Filesystem root is "${toString rootFilesystemRoot}"
             `fileset`: Filesystem root is "${toString filesetFilesystemRoot}"
             Different filesystem roots are not supported.''
-    else if !pathExists root then
-      throw ''lib.fileset.toSource: `root` (${toString root}) is a path that does not exist.''
-    else if pathType root != "directory" then
+    else if !pathExists resolvedRoot then
+      throw ''lib.fileset.toSource: `root` (${toString resolvedRoot}) is a path that does not exist.''
+    else if pathType resolvedRoot != "directory" then
       throw ''
-        lib.fileset.toSource: `root` (${toString root}) is a file, but it should be a directory instead. Potential solutions:
+        lib.fileset.toSource: `root` (${toString resolvedRoot}) is a file, but it should be a directory instead. Potential solutions:
             - If you want to import the file into the store _without_ a containing directory, use string interpolation or `builtins.path` instead of this function.
-            - If you want to import the file into the store _with_ a containing directory, set `root` to the containing directory, such as ${toString (dirOf root)}, and set `fileset` to the file path.''
-    else if !fileset._internalIsEmptyWithoutBase && !hasPrefix root fileset._internalBase then
+            - If you want to import the file into the store _with_ a containing directory, set `root` to the containing directory, such as ${toString (dirOf resolvedRoot)}, and set `fileset` to the file path.''
+    else if !fileset._internalIsEmptyWithoutBase && !hasPrefix resolvedRoot fileset._internalBase then
       throw ''
-        lib.fileset.toSource: `fileset` could contain files in ${toString fileset._internalBase}, which is not under the `root` (${toString root}). Potential solutions:
+        lib.fileset.toSource: `fileset` could contain files in ${toString fileset._internalBase}, which is not under the `root` (${toString resolvedRoot}). Potential solutions:
             - Set `root` to ${toString fileset._internalBase} or any directory higher up. This changes the layout of the resulting store path.
-            - Set `fileset` to a file set that cannot contain files outside the `root` (${toString root}). This could change the files included in the result.''
+            - Set `fileset` to a file set that cannot contain files outside the `root` (${toString resolvedRoot}). This could change the files included in the result.''
     else
       seq sourceFilter cleanSourceWith {
         name = "source";
-        src = root;
+        src = resolvedRoot;
         filter = sourceFilter;
       };
 
