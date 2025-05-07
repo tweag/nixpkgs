@@ -22,6 +22,48 @@ let
   inherit (lib.strings)
     hasSuffix
     ;
+  inherit (lib.path)
+    splitRoot
+    subpath
+    ;
+
+  inherit (lib.lists)
+    length
+    elemAt
+    ;
+
+  readSymlink =
+    path:
+    assert pathType path == "symlink";
+    builtins.exec
+      or (throw "builtins.exec needed for readlink, pass the following CLI flag to enable it: --option allow-unsafe-native-code-during-evaluation true")
+      [
+        "bash"
+        "-c"
+        ''
+          echo "\"$(readlink ${toString path})\""
+        ''
+      ];
+
+  canonicalPath =
+    path:
+    let
+      split = splitRoot path;
+      components = subpath.components split.subpath;
+      canonAppend =
+        base: name:
+        let
+          appended = base + "/${name}";
+        in
+        if pathType appended == "symlink" then
+          lib.foldl' canonAppend base (lib.splitString "/" (readSymlink appended))
+        else
+          appended;
+      recurse =
+        acc: i:
+        if i == length components then acc else recurse (canonAppend acc (elemAt components i)) (i + 1);
+    in
+    recurse split.root 0;
 in
 
 {
@@ -75,6 +117,8 @@ in
       else
         (readDir (dirOf path)).${baseNameOf path}
     );
+
+  inherit readSymlink canonicalPath;
 
   /**
     Whether a path exists and is a directory.
