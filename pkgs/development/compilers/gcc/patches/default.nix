@@ -279,6 +279,9 @@ in
 ## gcc 9.0 and older ##############################################################################
 
 ++ optional (majorVersion == "9") ./9/fix-struct-redefinition-on-glibc-2.36.patch
+# Needed for NetBSD cross comp
+# https://gcc.gnu.org/pipermail/gcc-patches/2020-January/thread.html#537548
+# https://gcc.gnu.org/git/?p=gcc.git;a=commit;h=98d56ea8900fdcff8f1987cf2bf499a5b7399857
 ++ optional (!atLeast10 && targetPlatform.isNetBSD) ./libstdc++-netbsd-ctypes.patch
 
 # Make Darwin bootstrap respect whether the assembler supports `--gstabs`,
