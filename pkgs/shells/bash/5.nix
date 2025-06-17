@@ -6,8 +6,10 @@
   updateAutotoolsGnuConfigScriptsHook,
   bison,
   util-linux,
+  coreutils,
 
   interactive ? true,
+  runTests ? false,
   readline,
   withDocs ? null,
   forFHSEnv ? false,
@@ -73,17 +75,20 @@ lib.warnIf (withDocs != null)
 
     patchFlags = [ "-p0" ];
 
-    patches = upstreamPatches ++ [
-      # enable PGRP_PIPE when building on recent kernels as well
-      # https://github.com/NixOS/nixpkgs/pull/77196
-      ./pgrp-pipe-5.patch
-      # Apply parallel build fix pending upstream inclusion:
-      #   https://savannah.gnu.org/patch/index.php?10373
-      # Had to fetch manually to workaround -p0 default.
-      ./parallel.patch
-      # Fix `pop_var_context: head of shell_variables not a function context`.
-      ./fix-pop-var-context-error.patch
-    ];
+    patches =
+      upstreamPatches
+      ++ [
+        # enable PGRP_PIPE when building on recent kernels as well
+        # https://github.com/NixOS/nixpkgs/pull/77196
+        ./pgrp-pipe-5.patch
+        # Apply parallel build fix pending upstream inclusion:
+        #   https://savannah.gnu.org/patch/index.php?10373
+        # Had to fetch manually to workaround -p0 default.
+        ./parallel.patch
+        # Fix `pop_var_context: head of shell_variables not a function context`.
+        ./fix-pop-var-context-error.patch
+      ]
+      ++ lib.optional runTests ./fail-tests.patch;
 
     configureFlags =
       [
@@ -140,8 +145,11 @@ lib.warnIf (withDocs != null)
       "SHOBJ_LIBS=-lbash"
     ];
 
-    nativeCheckInputs = [ util-linux ];
-    doCheck = false; # dependency cycle, needs to be interactive
+    nativeCheckInputs = [
+      coreutils
+      util-linux
+    ];
+    doCheck = runTests; # dependency cycle, needs to be interactive
 
     postInstall = ''
       ln -s bash "$out/bin/sh"

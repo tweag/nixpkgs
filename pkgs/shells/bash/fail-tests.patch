@@ -1,0 +1,26 @@
+diff --git Makefile.in Makefile.in
+index 0b4df73..0f7bc9a 100644
+--- Makefile.in
++++ Makefile.in
+@@ -973,7 +973,7 @@ test tests check:	force $(Program) $(TESTS_SUPPORT)
+ 	@-test -d tests || mkdir tests
+ 	@cp $(TESTS_SUPPORT) tests
+ 	@( cd $(srcdir)/tests && \
+-		BUILD_DIR=$(BUILD_DIR) PATH=$(BUILD_DIR)/tests:$$PATH THIS_SH=$(THIS_SH) $(SHELL) ${TESTSCRIPT} )
++		BUILD_DIR=$(BUILD_DIR) PATH=$(BUILD_DIR)/tests:$$PATH THIS_SH=$(THIS_SH) $(SHELL) -e ${TESTSCRIPT} )
+ 
+ symlinks:
+ 	$(SHELL) $(SUPPORT_SRC)fixlinks -s $(srcdir)
+diff --git tests/run-all tests/run-all
+index 1f74923..69670a1 100644
+--- tests/run-all
++++ tests/run-all
+@@ -57,7 +57,7 @@ do
+ 	case $x in
+ 	$0|run-minimal|run-gprof)	;;
+ 	*.orig|*~) ;;
+-	*)	echo $x ; sh $x ; rm -f ${BASH_TSTOUT} ;;
++	*)	echo $x ; sh -e $x ; rm -f ${BASH_TSTOUT} ;;
+ 	esac
+ done
+ 
