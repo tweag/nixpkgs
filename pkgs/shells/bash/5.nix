@@ -7,6 +7,8 @@
   bison,
   util-linux,
   coreutils,
+  libredirect,
+  glibcLocales,
 
   interactive ? true,
   runTests ? false,
@@ -87,8 +89,8 @@ lib.warnIf (withDocs != null)
         ./parallel.patch
         # Fix `pop_var_context: head of shell_variables not a function context`.
         ./fix-pop-var-context-error.patch
-      ]
-      ++ lib.optional runTests ./fail-tests.patch;
+      ];
+      #++ lib.optional runTests ./fail-tests.patch;
 
     configureFlags =
       [
@@ -148,8 +150,22 @@ lib.warnIf (withDocs != null)
     nativeCheckInputs = [
       coreutils
       util-linux
+      libredirect.hook
+      glibcLocales
     ];
     doCheck = runTests; # dependency cycle, needs to be interactive
+    ${if runTests then "preCheck" else null} = ''
+      export HOME=$(mktemp -d)
+      export NIX_REDIRECTS=${lib.concatMapAttrsStringSep ":" (name: value:
+        "${name}=${value}"
+      ) {
+        "/bin/echo" = lib.getExe' coreutils "echo";
+        "/bin/cat" = lib.getExe' coreutils "cat";
+        "/bin/rm" = lib.getExe' coreutils "rm";
+        "/usr" = "$(mktemp -d)";
+        "/tmp" = "$(mktemp -d)";
+      }}
+    '';
 
     postInstall = ''
       ln -s bash "$out/bin/sh"

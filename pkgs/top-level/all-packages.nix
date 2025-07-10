@@ -4848,6 +4848,30 @@ with pkgs;
   runtimeShellPackage = bashNonInteractive;
 
   bash = callPackage ../shells/bash/5.nix { };
+
+  bashCp =
+    let
+      inherit (checkpointBuildTools)
+        prepareCheckpointBuild
+        mkCheckpointBuild
+        ;
+      bash' = bash.overrideAttrs (old: { separateDebugInfo = false; });
+      cp = prepareCheckpointBuild bash';
+      bash'' = (bash'.override {
+        runTests = true;
+      }).overrideAttrs (old: {
+        #dontConfigure = true;
+        #phases = [ "checkPhase" ];
+        checkPhase = ''
+          runHook preCheck
+          mkdir -p $out
+          make check
+          runHook postCheck
+        '';
+      });
+    in
+    mkCheckpointBuild bash'' cp;
+
   bashNonInteractive = lowPrio (
     callPackage ../shells/bash/5.nix {
       interactive = false;
