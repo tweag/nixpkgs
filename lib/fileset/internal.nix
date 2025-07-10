@@ -165,6 +165,16 @@ rec {
       _noEval = throw _noEvalMessage;
     };
 
+  # The empty fileset.
+  _empty =
+    {
+      _type = "fileset";
+      _internalVersion = _currentVersion;
+      _internalIsEmptyWithoutBase = true;
+      # See note in `_create`
+      _noEval = throw _noEvalMessage;
+    };
+
   # Coerce a value to a fileset. Return a set containing the attribute `success`
   # indicating whether coercing succeeded, and either `value` when `success ==
   # true`, or an error `message` when `success == false`. The string gives the

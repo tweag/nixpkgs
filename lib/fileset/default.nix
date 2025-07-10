@@ -115,6 +115,7 @@ let
     _fromFetchGit
     _fetchGitSubmodulesMinver
     _emptyWithoutBase
+    _empty
     ;
 
   inherit (builtins)
@@ -1013,6 +1014,17 @@ in
             submodules = true;
           }
         );
+
+  /**
+    The empty fileset. It can be useful as a default value or as starting accumulator for a folding operation.
+
+    # Type
+
+    ```
+    empty :: FileSet
+    ```
+  */
+  empty = _empty;
 
   /**
     Tests whether a given value is a fileset, or can be used in place of a fileset.
