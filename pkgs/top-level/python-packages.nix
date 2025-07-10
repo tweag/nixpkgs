@@ -17626,6 +17626,8 @@ self: super: with self; {
 
   testscenarios = callPackage ../development/python-modules/testscenarios { };
 
+  testslide = callPackage ../development/python-modules/testslide { };
+
   testtools = callPackage ../development/python-modules/testtools { };
 
   texsoup = callPackage ../development/python-modules/texsoup { };
