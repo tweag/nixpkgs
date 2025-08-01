@@ -26,7 +26,7 @@ let
     isAttrs
     isString
     mapAttrs
-    filterAttrs
+    removeAttrs
     ;
 
   inherit (lib.lists)
@@ -576,65 +576,68 @@ let
     let
       outputs = attrs.outputs or [ "out" ];
       hasOutput = out: builtins.elem out outputs;
+      res = {
+        # `name` derivation attribute includes cross-compilation cruft,
+        # is under assert, and is sanitized.
+        # Let's have a clean always accessible version here.
+        name = attrs.name or "${attrs.pname}-${attrs.version}";
+
+        # If the packager hasn't specified `outputsToInstall`, choose a default,
+        # which is the name of `p.bin or p.out or p` along with `p.man` when
+        # present.
+        #
+        # If the packager has specified it, it will be overridden below in
+        # `// meta`.
+        #
+        #   Note: This default probably shouldn't be globally configurable.
+        #   Services and users should specify outputs explicitly,
+        #   unless they are comfortable with this default.
+        outputsToInstall = [
+          (
+            if hasOutput "bin" then
+              "bin"
+            else if hasOutput "out" then
+              "out"
+            else
+              findFirst hasOutput null outputs
+          )
+        ]
+        ++ optional (hasOutput "man") "man";
+
+        # CI scripts look at these to determine pings. Note that we should filter nulls out of this,
+        # or nix-env complains: https://github.com/NixOS/nix/blob/2.18.8/src/nix-env/nix-env.cc#L963
+        maintainersPosition = builtins.unsafeGetAttrPos "maintainers" (attrs.meta or { });
+        teamsPosition = builtins.unsafeGetAttrPos "teams" (attrs.meta or { });
+      }
+      // attrs.meta or { }
+      // {
+        # Fill `meta.position` to identify the source location of the package.
+        position = pos.file + ":" + toString pos.line;
+
+        # Maintainers should be inclusive of teams.
+        # Note that there may be external consumers of this API (repology, for instance) -
+        # if you add a new maintainer or team attribute please ensure that this expectation is still met.
+        maintainers =
+          attrs.meta.maintainers or [ ] ++ concatMap (team: team.members or [ ]) attrs.meta.teams or [ ];
+
+        # Expose the result of the checks for everyone to see.
+        unfree = hasUnfreeLicense attrs;
+        broken = isMarkedBroken attrs;
+        unsupported = hasUnsupportedPlatform attrs;
+        insecure = isMarkedInsecure attrs;
+
+        available =
+          validity.valid != "no"
+          && (
+            if config.checkMetaRecursively or false then all (d: d.meta.available or true) references else true
+          );
+      };
     in
-    {
-      # `name` derivation attribute includes cross-compilation cruft,
-      # is under assert, and is sanitized.
-      # Let's have a clean always accessible version here.
-      name = attrs.name or "${attrs.pname}-${attrs.version}";
-
-      # If the packager hasn't specified `outputsToInstall`, choose a default,
-      # which is the name of `p.bin or p.out or p` along with `p.man` when
-      # present.
-      #
-      # If the packager has specified it, it will be overridden below in
-      # `// meta`.
-      #
-      #   Note: This default probably shouldn't be globally configurable.
-      #   Services and users should specify outputs explicitly,
-      #   unless they are comfortable with this default.
-      outputsToInstall = [
-        (
-          if hasOutput "bin" then
-            "bin"
-          else if hasOutput "out" then
-            "out"
-          else
-            findFirst hasOutput null outputs
-        )
-      ]
-      ++ optional (hasOutput "man") "man";
-    }
-    // (filterAttrs (_: v: v != null) {
-      # CI scripts look at these to determine pings. Note that we should filter nulls out of this,
-      # or nix-env complains: https://github.com/NixOS/nix/blob/2.18.8/src/nix-env/nix-env.cc#L963
-      maintainersPosition = builtins.unsafeGetAttrPos "maintainers" (attrs.meta or { });
-      teamsPosition = builtins.unsafeGetAttrPos "teams" (attrs.meta or { });
-    })
-    // attrs.meta or { }
-    # Fill `meta.position` to identify the source location of the package.
-    // optionalAttrs (pos != null) {
-      position = pos.file + ":" + toString pos.line;
-    }
-    // {
-      # Maintainers should be inclusive of teams.
-      # Note that there may be external consumers of this API (repology, for instance) -
-      # if you add a new maintainer or team attribute please ensure that this expectation is still met.
-      maintainers =
-        attrs.meta.maintainers or [ ] ++ concatMap (team: team.members or [ ]) attrs.meta.teams or [ ];
-
-      # Expose the result of the checks for everyone to see.
-      unfree = hasUnfreeLicense attrs;
-      broken = isMarkedBroken attrs;
-      unsupported = hasUnsupportedPlatform attrs;
-      insecure = isMarkedInsecure attrs;
-
-      available =
-        validity.valid != "no"
-        && (
-          if config.checkMetaRecursively or false then all (d: d.meta.available or true) references else true
-        );
-    };
+    builtins.removeAttrs res [
+      (optionalString (res.maintainersPosition == null) "maintainersPosition")
+      (optionalString (res.teamsPosition == null) "teamsPosition")
+      (optionalString (pos == null) "position")
+    ];
 
   assertValidity =
     { meta, attrs }:
