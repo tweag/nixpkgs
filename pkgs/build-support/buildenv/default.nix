@@ -97,7 +97,6 @@ lib.makeOverridable (
           ignoreCollisions
           checkCollisionContents
           ignoreSingleFileOutputs
-          passthru
           meta
           pathsToLink
           extraPrefix
@@ -111,6 +110,7 @@ lib.makeOverridable (
         allowSubstitutes = false;
         # XXX: The size is somewhat arbitrary
         passAsFile = if builtins.stringLength pkgs >= 128 * 1024 then [ "pkgs" ] else [ ];
+        passthru = { inherit paths; } // passthru;
       }
       // lib.optionalAttrs (pname != null) {
         inherit pname;
