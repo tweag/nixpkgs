@@ -855,127 +855,26 @@ let
             "The `env` attribute set can only contain derivation, string, boolean or integer attributes. The `${n}` attribute is of type ${builtins.typeOf v}.";
           v
         ) env';
-
-      # Fixed-output derivations may not reference other paths, which means that
-      # for a fixed-output derivation, the corresponding inputDerivation should
-      # *not* be fixed-output. To achieve this we simply delete the attributes that
-      # would make it fixed-output.
-      deleteFixedOutputRelatedAttrs = lib.flip removeAttrs [
-        "outputHashAlgo"
-        "outputHash"
-        "outputHashMode"
-      ];
-
     in
 
     extendDerivation validity.handled (
       {
-        # A derivation that always builds successfully and whose runtime
-        # dependencies are the original derivations build time dependencies
-        # This allows easy building and distributing of all derivations
-        # needed to enter a nix-shell with
-        #   nix-build shell.nix -A inputDerivation
-        # TODO: This now only works for structuredAttrs, fix it for the other case
-        inputDerivation = derivation (
-          deleteFixedOutputRelatedAttrs derivationArg
-          // {
-            name = "inputDerivation${lib.optionalString (derivationArg ? name) "-${derivationArg.name}"}";
-            # This always only has one output
-            outputs = [ "out" ];
+        inputDerivation = import ./input-derivation.nix {
+          inherit lib derivationArg __structuredAttrs stdenv;
+        };
 
-            builder = stdenvShell;
-            # The builtin `declare -p` dumps all bash and environment variables,
-            # which is where all build input references end up (e.g. $PATH for
-            # binaries). By writing this to $out, Nix can find and register
-            # them as runtime dependencies (since Nix greps for store paths
-            # through $out to find them). Using placeholder for $out works with
-            # and without structuredAttrs.
-            # This build script does not use setup.sh or stdenv, to keep
-            # the env most pristine. This gives us a very bare bones env,
-            # hence the extra/duplicated compatibility logic and "pure bash" style.
-            args = [
-              "-c"
-              /* bash */ ''
-                set -euo pipefail
-                enable -f mkdir mkdir
-                enable -f tee tee
-                enable -f chmod chmod
-
-                source "$NIX_ATTRS_SH_FILE"
-
-                out=''${outputs[out]}
-                mkdir "$out"
-
-                #export 2>/dev/null > "$out/env-vars"
-
-                # cp without cp
-                tee <"$NIX_ATTRS_SH_FILE" >$out/attrs.sh
-                tee <"$NIX_ATTRS_JSON_FILE" >$out/attrs.json
-
-                # TODO: If used with iptables, the resulting iptables binary does not actually run..
-                tee >$out/reproduce.sh <<EOF
-                #!/usr/bin/env bash
-                set -euo pipefail
-                # TODO: Consider cleaning
-                # TODO: Test buildDir too
-                outputsDir=\$(realpath "\''${1:-\$(mktemp -d)}")
-                buildDir=\$(realpath "\''${2:-\$(mktemp -d)}")
-                cores=\$(nproc)
-                mkdir -p "\$outputsDir"
-
-                cat $out/attrs.sh - > "\$buildDir/.attrs.sh" <<FOF
-                declare name=${lib.escapeShellArg derivationArg.name}
-                declare builder=${lib.escapeShellArg derivationArg.builder}
-                declare -A outputs=(${lib.concatMapStringsSep " " (output: "[${output}]=\\$outputsDir/${output}") (derivationArg.outputs or [ "out" ])})
-                FOF
-                # TODO: Finish JSON mirroring
-
-                exec -c bash "$out/.reproduce.sh" "\$cores" "\$buildDir"
-                EOF
-
-                tee >$out/.reproduce.sh <<EOF
-                export HOME="/homeless-shelter"
-                export PATH="/path-not-set"
-                export NIX_ATTRS_SH_FILE=\$2/.attrs.sh
-                export NIX_ATTRS_JSON_FILE=\$2/.attrs.json
-                export NIX_BUILD_CORES=\$1
-                export NIX_BUILD_TOP=\$2
-                export NIX_LOG_FD="2"
-                export NIX_STORE="${builtins.storeDir}"
-                export TEMP="\$2"
-                export TEMPDIR="\$2"
-                export TMP="\$2"
-                export TMPDIR="\$2"
-
-                cd "\$2"
-
-                # TODO: Handle spaces in arguments, while still making sure that paths work
-                exec "${derivationArg.builder}" ${lib.concatMapStringsSep " " (s: "${s}") derivationArg.args}
-                EOF
-
-                chmod +x $out/reproduce.sh $out/.reproduce.sh
-              ''
-            ];
-                #jq \
-                #  --arg name ${lib.escapeShellArg derivationArg.name} '.name |= $name' $out/attrs.json > "$tmp/.attrs.json"
-          }
-          // (
-            # inputDerivation produces the inputs; not the outputs, so any
-            # restrictions on what used to be the outputs don't serve a purpose
-            # anymore.
-            if __structuredAttrs then
-              {
-                outputChecks = { };
-              }
-            else
-              {
-                allowedReferences = null;
-                allowedRequisites = null;
-                disallowedReferences = [ ];
-                disallowedRequisites = [ ];
-              }
-          )
-        );
+        #reproducibleDerivation = ...;
+        # standaloneDerivation
+        # builderDerivation
+        # derivationRunner
+        # independentDerivationRunner
+        # runnableDerivation
+        # reproduceBuilderExecution
+        # executeBuilderScript
+        # builderExecuter
+        # standaloneDerivationBuilder
+        # buildDerivationStandalone
+        # freeBuilder
 
         inherit passthru overrideAttrs;
         inherit meta;
