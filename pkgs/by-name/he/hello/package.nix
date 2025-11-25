@@ -7,6 +7,7 @@
   testers,
   versionCheckHook,
   hello,
+  meta,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -43,18 +44,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.tests.run = callPackage ./test.nix { hello = finalAttrs.finalPackage; };
 
-  meta = {
-    description = "Program that produces a familiar, friendly greeting";
-    longDescription = ''
-      GNU Hello is a program that prints "Hello, world!" when you run it.
-      It is fully customizable.
-    '';
-    homepage = "https://www.gnu.org/software/hello/manual/";
+  meta = meta.hello // {
     changelog = "https://git.savannah.gnu.org/cgit/hello.git/plain/NEWS?h=v${finalAttrs.version}";
-    license = lib.licenses.gpl3Plus;
-    maintainers = with lib.maintainers; [ stv0g ];
-    mainProgram = "hello";
     platforms = lib.platforms.all;
-    identifiers.cpeParts.vendor = "gnu";
   };
 })

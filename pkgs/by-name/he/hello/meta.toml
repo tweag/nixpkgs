@@ -1,0 +1,9 @@
+description = "Program that produces a familiar, friendly greeting"
+license = "gpl3Plus"
+maintainers = [ "stv0g" ]
+identifiers.cpeParts.vendor = "gnu"
+longDescription = """
+GNU Hello is a program that prints "Hello, world!" when you run it.
+It is fully customizable."""
+homepage = "https://www.gnu.org/software/hello/manual/"
+mainProgram = "hello"
