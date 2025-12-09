@@ -13,7 +13,7 @@
   unzip,
   glibcLocalesUtf8,
 }:
-
+assert lib.assertMsg (fetchurl ? override) "fetchzip: The current fetchurl is not overridable";
 lib.extendMkDerivation {
   constructDrv = fetchurl;
 

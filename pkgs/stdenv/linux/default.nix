@@ -902,10 +902,16 @@ assert bootstrapTools.passthru.isFromBootstrapFiles or false; # sanity check
               gnupatch
               patchelf
               attr
-              acl
               zlib
               libunistring
               ;
+
+            # Without this override, all arguments to acl come entirely from prevStage,
+            # which is a "bootstrapping" package set (e.g. fetchurl = fetchurlBoot).
+            acl = prevStage.acl.override {
+              inherit (self) vmTools;
+            };
+
             inherit (prevStage.gnugrep) pcre2;
             ${localSystem.libc} = prevStage.${localSystem.libc};
 
