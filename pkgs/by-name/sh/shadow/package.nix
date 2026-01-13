@@ -20,6 +20,10 @@
   withTcb ? lib.meta.availableOn stdenv.hostPlatform tcb,
   tcb,
   cmocka,
+  vmTools,
+  expect,
+  util-linux,
+  which,
 }:
 let
   glibc' =
@@ -31,7 +35,7 @@ let
 
 in
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: rec {
   pname = "shadow";
   version = "4.18.0";
 
@@ -139,6 +143,69 @@ stdenv.mkDerivation rec {
   passthru = {
     shellPath = "/bin/nologin";
     # TODO: Run system tests: https://github.com/shadow-maint/shadow/blob/master/doc/contributions/tests.md#system-tests
-    tests = { inherit (nixosTests) shadow; };
+    tests = {
+      inherit (nixosTests) shadow;
+      withChecks = vmTools.runInLinuxVM (
+        finalAttrs.finalPackage.overrideAttrs (old: {
+          memSize = 4096;
+          nativeInstallCheckInputs = [
+            expect
+            util-linux
+          ];
+          preConfigure = ''
+            touch /etc/shadow
+            mkdir /root
+            touch /root/.{bashrc,profile}
+            ${lib.getExe' finalAttrs.finalPackage "useradd"} testsuite
+            ${lib.getExe' finalAttrs.finalPackage "groupadd"} shadow
+          '';
+          # Override the default
+          postInstall = "";
+          doInstallCheck = true;
+          installCheckPhase = ''
+            runHook preCheck
+            # Otherwise it tries to get the base from git
+            export BUILD_BASE_DIR=$PWD
+            patchShebangs tests
+            cd tests
+            ./run_some || cat testsuite.log && exit 1
+            runHook postCheck
+          '';
+          outputs = [ "out" ];
+          configureFlags = [
+            "--prefix=/"
+          ];
+          #makeFlags = [
+          #  "DESTDIR=/"
+          #];
+          #installFlags = [
+          #  "DESTDIR=/"
+          #];
+          #doCheck = true;
+          #prefix = "/";
+          dontFixup = true;
+        })
+      );
+
+      #programs.bash.promptInit = ''
+      #  if [ $(id -u) -eq 0 ]; then
+      #    PS1='# '
+      #  else
+      #    PS1='$ '
+      #  fi
+      #'';
+
+      #  users.users.testsuite = {
+      #    isNormalUser = true;
+      #    password = "";
+      #  };
+
+      #  system.activationScripts.setup = ''
+      #    touch /root/.{bashrc,profile}
+      #    ln -s /run/wrappers/bin/su /bin/su
+      #    ln -s /run/current-system/sw/bin/bash /bin/bash
+      #  '';
+
+    };
   };
-}
+})
