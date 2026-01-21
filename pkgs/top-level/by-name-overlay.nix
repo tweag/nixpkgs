@@ -51,7 +51,7 @@ self: super:
   # Because at that point the code in ./stage.nix can be changed to not allow definitions in `all-packages.nix` to override ones from `pkgs/by-name` anymore and throw an error if that happens instead.
   _internalCallByNamePackageFile = file: self.callPackage file { };
 
-  meta = import ./meta.nix;
+  staticMeta = import ./meta.nix;
 
 }
 // mapAttrs (name: self._internalCallByNamePackageFile) packageFiles

@@ -1,0 +1,47 @@
+id: meta-arg
+severity: info
+language: Nix
+rule:
+  kind: formal
+  pattern: $F
+  nthChild:
+    reverse: true
+    position: 1
+    ofRule:
+      kind: formal
+  not:
+    regex: ^staticMeta$
+  all:
+  - not:
+      follows:
+        stopBy:
+          kind: formals
+        regex: ^staticMeta$
+fix: |-
+  $F,
+  staticMeta
+
+---
+
+id: meta-update
+severity: info
+language: Nix
+rule:
+  kind: binding
+  inside:
+    kind: binding_set
+    inside:
+      kind: attrset_expression
+  all:
+  - has:
+      field: attrpath
+      regex: ^meta$
+  - has:
+      field: expression
+      pattern: $VAL
+      not:
+        kind: binary_expression
+        has:
+          field: left
+          regex: ^staticMeta.@ATTR@$
+fix: 'meta = staticMeta.@ATTR@ // $VAL;'
