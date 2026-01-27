@@ -17,6 +17,7 @@
   busybox,
   jq,
   nix,
+  nix-eval-jobs,
 }:
 
 {
@@ -140,6 +141,40 @@ let
           echo "Nixpkgs on $system evaluated with warnings, aborting"
           kill $PPID
         fi
+
+        export NIX_SHOW_STATS=1
+        export NIX_SHOW_STATS_PATH="$outputDir/nej-stats/$myChunk"
+        echo "NEJ: Chunk $myChunk on $system start"
+        set +e
+        command time -o "$outputDir/nej-timestats/$myChunk" \
+          -f "Chunk $myChunk on $system done [%MKB max resident, %Es elapsed] %C" \
+          ${lib.getExe nix-eval-jobs} "${nixpkgs}/ci/eval/chunk.nix" \
+          --option restrict-eval true \
+          --option allow-import-from-derivation false \
+          --meta \
+          --show-trace \
+          --arg chunkSize "$chunkSize" \
+          --arg myChunk "$myChunk" \
+          --arg attrpathFile "${attrpathFile}" \
+          --arg systems "[ \"$system\" ]" \
+          --arg includeBroken ${lib.boolToString includeBroken} \
+          --argstr extraNixpkgsConfigJson ${lib.escapeShellArg (builtins.toJSON extraNixpkgsConfig)} \
+          -I ${nixpkgs} \
+          -I ${attrpathFile} \
+          > "$outputDir/nej-result/$myChunk" \
+          2> "$outputDir/nej-stderr/$myChunk"
+        exitCode=$?
+        set -e
+        cat "$outputDir/nej-stderr/$myChunk"
+        cat "$outputDir/nej-timestats/$myChunk"
+        if (( exitCode != 0 )); then
+          echo "Evaluation failed with exit code $exitCode"
+          # This immediately halts all xargs processes
+          kill $PPID
+        elif [[ -s "$outputDir/nej-stderr/$myChunk" ]]; then
+          echo "Nixpkgs on $system evaluated with warnings, aborting"
+          kill $PPID
+        fi
       '';
     in
     runCommand "nixpkgs-eval-${evalSystem}"
@@ -158,6 +193,7 @@ let
       }
       ''
         export NIX_STATE_DIR=$(mktemp -d)
+        export NIX_STORE_DIR=$(mktemp -d)
         nix-store --init
 
         echo "System: $evalSystem"
@@ -197,6 +233,7 @@ let
 
         chunkOutputDir=$(mktemp -d)
         mkdir "$chunkOutputDir"/{result,stats,timestats,stderr}
+        mkdir "$chunkOutputDir"/{nej-result,nej-stats,nej-timestats,nej-stderr}
 
         seq -w 0 "$seq_end" |
           command time -f "%e" -o "$out/${evalSystem}/total-time" \
@@ -212,6 +249,8 @@ let
 
         cat "$chunkOutputDir"/result/* | jq -s 'add | map_values(.outputs)' > $out/${evalSystem}/paths.json
         cat "$chunkOutputDir"/result/* | jq -s 'add | map_values(.meta)' > $out/${evalSystem}/meta.json
+
+        cp -r $NIX_STATE_DIR $out/nix
       '';
 
   diff = callPackage ./diff.nix { };
