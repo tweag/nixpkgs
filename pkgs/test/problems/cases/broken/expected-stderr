@@ -1,0 +1,33 @@
+(stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+error: Package ‘a-0’ in /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-default.nix:12 has the following problems that must be acknowledged: [ "broken" ], refusing to evaluate.
+
+
+Package problems:
+
+- broken: This package is broken.
+
+You can use it anyway by ignoring its problems, using one of the
+following methods:
+
+a) For `nixos-rebuild` you can add "warn" or "ignore" entries to
+  `nixpkgs.config.problems.handlers` inside configuration.nix,
+  like this:
+
+    {
+      nixpkgs.config.problems.handlers = {
+        a.broken = "warn";
+      };
+    }
+
+b) For `nix-env`, `nix-build`, `nix-shell` or any other Nix command you can add
+  "warn" or "ignore" to `problems.handlers` in
+  ~/.config/nixpkgs/config.nix, like this:
+
+    {
+      problems.handlers = {
+        a.broken = "warn";
+      };
+    }
+
+See this page for more details: https://nixos.org/manual/nixpkgs/unstable#sec-problems

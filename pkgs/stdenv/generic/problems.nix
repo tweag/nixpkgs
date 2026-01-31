@@ -84,6 +84,7 @@ rec {
     manual = [
       "removal"
       "deprecated"
+      "broken"
     ];
     # Problem kinds that are only allowed up to once per package
     unique = [
@@ -110,7 +111,7 @@ rec {
         # If `description` is not defined, the derivation is probably not a package.
         # Simply checking whether `meta` is defined is insufficient,
         # as some fetchers and trivial builders do define meta.
-        attrs:
+        config: attrs:
         # Order of checks optimised for short-circuiting the common case of having maintainers
         (attrs.meta.maintainers or [ ] == [ ])
         && (attrs.meta.teams or [ ] == [ ])
@@ -118,13 +119,38 @@ rec {
         && (attrs ? meta.description);
       value.message = "This package has no declared maintainer, i.e. an empty `meta.maintainers` and `meta.teams` attribute.";
     }
+    {
+      kindName = "broken";
+      condition =
+        config:
+        let
+          allowBroken =
+            if config ? allowBroken then
+              lib.warnIf (lib.oldestSupportedReleaseIsAtLeast 2605)
+                "config.allowBroken is deprecated, use config.problems.handlers.myPackage.broken = \"warn\" for individual packages instead."
+                config.allowBroken
+            else
+              # TODO: Consider deprecating this or making it generic for all problems
+              builtins.getEnv "NIXPKGS_ALLOW_BROKEN" == "1";
+
+          allowBrokenPredicate =
+            if config ? allowBrokenPredicate then
+              lib.warnIf (lib.oldestSupportedReleaseIsAtLeast 2605)
+                "config.allowBrokenPredicate is deprecated, use config.problems.handlers.myPackage.broken = \"warn\" for individual packages instead."
+                config.allowBrokenPredicate
+            else
+              x: false;
+        in
+        attrs: attrs.meta.broken or false && !allowBroken && !allowBrokenPredicate attrs;
+      value.message = "This package is broken.";
+    }
   ];
 
   genAutomaticProblems =
-    attrs:
+    config: attrs:
     listToAttrs (
       map (problem: lib.nameValuePair problem.kindName problem.value) (
-        filter (problem: problem.condition attrs) automaticProblems
+        filter (problem: problem.condition config attrs) automaticProblems
       )
     );
 
@@ -423,6 +449,10 @@ rec {
       inherit (genHandlerSwitch config)
         handlerForProblem
         ;
+      # Makes sure that automatic problems can cache with just config applied
+      automaticProblemsConfigCache = map (
+        problem: problem // { condition = problem.condition config; }
+      ) automaticProblems;
     in
     attrs:
     let
@@ -435,22 +465,24 @@ rec {
       all (
         problem:
         !problem.condition attrs || handlerForProblem pname problem.kindName problem.kindName == "ignore"
-      ) automaticProblems
+      ) automaticProblemsConfigCache
       && (
         # No manual problems
         manualProblems == { }
         # Or all manual problems are ignored
-        || all (name: handlerForProblem pname name (manualProblems.${name}.kind or name) == "ignore") (
-          attrNames manualProblems
-        )
+        || all (
+          name:
+          !(manualProblems.${name}.enable or true)
+          || handlerForProblem pname name (manualProblems.${name}.kind or name) == "ignore"
+        ) (attrNames manualProblems)
       )
     then
       null
     else
       # Slow path, only here we actually figure out which problems we need to handle
       let
-        problems = attrs.meta.problems or { } // genAutomaticProblems attrs;
-        problemsToHandle = filter (v: v.handler != "ignore") (
+        problems = attrs.meta.problems or { } // genAutomaticProblems config attrs;
+        problemsToHandle = filter (v: v.problem.enable or true && v.handler != "ignore") (
           mapAttrsToList (name: problem: rec {
             inherit name;
             # Kind falls back to the name
