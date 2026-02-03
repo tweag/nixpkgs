@@ -16,7 +16,6 @@
   gitUpdater,
 }:
 let
-  inherit (_cuda.lib) _mkMetaBadPlatforms;
   inherit (backendStdenv) hasJetsonCudaCapability requestedJetsonCudaCapabilities;
   inherit (lib)
     all
@@ -136,14 +135,6 @@ backendStdenv.mkDerivation (finalAttrs: {
   disallowedRequisites = [ (lib.getBin cuda_nvcc) ];
 
   passthru = {
-    platformAssertions = [
-      {
-        message = "Pre-Thor Jetson devices (CUDA capabilities < 10.1) are not supported by NCCL";
-        assertion =
-          !hasJetsonCudaCapability || all (flip versionAtLeast "10.1") requestedJetsonCudaCapabilities;
-      }
-    ];
-
     updateScript = gitUpdater {
       inherit (finalAttrs) pname version;
       rev-prefix = "v";
@@ -160,7 +151,11 @@ backendStdenv.mkDerivation (finalAttrs: {
     ];
     # NCCL is not supported on Pre-Thor Jetsons, because it does not use NVLink or PCI-e for inter-GPU communication.
     # https://forums.developer.nvidia.com/t/can-jetson-orin-support-nccl/232845/9
-    badPlatforms = _mkMetaBadPlatforms finalAttrs;
+    problems.pre-thor = lib.optionalAttrs (!(!hasJetsonCudaCapability || all (flip versionAtLeast "10.1") requestedJetsonCudaCapabilities))
+      {
+        message = "Pre-Thor Jetson devices (CUDA capabilities < 10.1) are not supported by NCCL";
+        kind = "broken";
+      };
     maintainers = with maintainers; [
       mdaiter
     ];
