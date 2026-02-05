@@ -21,12 +21,6 @@
   # See ./licenses.nix for documentation.
   licenses = import ./licenses.nix;
 
-  # See ./meta.nix for documentation.
-  inherit (import ./meta.nix { inherit _cuda lib; })
-    _mkMetaBadPlatforms
-    _mkMetaBroken
-    ;
-
   # See ./redist.nix for documentation.
   inherit (import ./redist.nix { inherit _cuda lib; })
     _redistSystemIsSupported

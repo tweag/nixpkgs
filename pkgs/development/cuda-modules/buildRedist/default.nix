@@ -28,6 +28,7 @@ let
     isAttrs
     attrNames
     optionalAttrs
+    unionOfDisjoint
     ;
   inherit (lib.customisation) extendMkDerivation;
   inherit (lib.lists)
@@ -36,7 +37,7 @@ let
     unique
     ;
   inherit (lib.trivial) mapNullable pipe;
-  inherit (_cuda.lib) _mkMetaBadPlatforms _mkMetaBroken _redistSystemIsSupported;
+  inherit (_cuda.lib) _redistSystemIsSupported;
   inherit (lib)
     licenses
     sourceTypes
@@ -61,6 +62,12 @@ let
     substring
     ;
   inherit (lib.trivial) flip;
+
+  mkBrokenAssertionProblems =
+    assertions:
+    lib.mapAttrs (name: value: { kind = "broken"; } // removeAttrs value [ "assertion" ]) (
+      lib.filterAttrs (name: value: !value.assertion) assertions
+    );
 
   mkOutputNameVar =
     output:
@@ -147,7 +154,9 @@ extendMkDerivation {
       meta ? { },
 
       # Misc
+      # TODO: Deprecate, replaced by meta.problems.*.kind = "broken";
       brokenAssertions ? [ ],
+      # TODO: Deprecate, replaced by meta.problems.*.kind = "broken";
       platformAssertions ? [ ],
 
       # Order is important here so we use a list.
@@ -391,59 +400,9 @@ extendMkDerivation {
         # NOTE: Do not use this when a broken assertion means evaluation will fail! For example, if
         # a package is missing and is required for the build -- that should go in platformAssertions,
         # because attempts to access attributes on the package will cause evaluation errors.
-        brokenAssertions = [
-          {
-            message = "lib output precedes static output";
-            assertion =
-              let
-                libIndex = findFirstIndex (x: x == "lib") null finalAttrs.outputs;
-                staticIndex = findFirstIndex (x: x == "static") null finalAttrs.outputs;
-              in
-              libIndex == null || staticIndex == null || libIndex < staticIndex;
-          }
-          {
-            # NOTE: We cannot (easily) check that all expected outputs have a corresponding outputNameVar attribute in
-            # finalAttrs because of the presence of attributes which use the "output" prefix but are not outputNameVars
-            # (e.g., outputChecks and outputName).
-            message = "outputNameVarFallbacks is a super set of expectedOutputs";
-            assertion =
-              subtractLists (map mkOutputNameVar finalAttrs.passthru.expectedOutputs) (
-                attrNames finalAttrs.passthru.outputNameVarFallbacks
-              ) == [ ];
-          }
-          {
-            message = "outputToPatterns is a super set of expectedOutputs";
-            assertion =
-              subtractLists finalAttrs.passthru.expectedOutputs (attrNames finalAttrs.passthru.outputToPatterns)
-              == [ ];
-          }
-          {
-            message = "propagatedBuildOutputs is a subset of outputs";
-            assertion = subtractLists finalAttrs.outputs finalAttrs.propagatedBuildOutputs == [ ];
-          }
-        ]
-        ++ brokenAssertions;
 
         # platformAssertions :: [Attrs]
-        # Used by mkMetaBadPlatforms to set `meta.badPlatforms`.
-        # Example: Broken on a specific system when some condition is met, like targeting Jetson or
-        # a required package missing.
         # NOTE: Use this when a failed assertion means evaluation can fail!
-        platformAssertions =
-          let
-            isSupportedRedistSystem = _redistSystemIsSupported hostRedistSystem finalAttrs.passthru.supportedRedistSystems;
-          in
-          [
-            {
-              message = "src is null if and only if hostRedistSystem is unsupported";
-              assertion = (finalAttrs.src == null) == !isSupportedRedistSystem;
-            }
-            {
-              message = "hostRedistSystem (${hostRedistSystem}) is supported (${builtins.toJSON finalAttrs.passthru.supportedRedistSystems})";
-              assertion = isSupportedRedistSystem;
-            }
-          ]
-          ++ platformAssertions;
       };
 
       meta = meta // {
@@ -452,8 +411,59 @@ extendMkDerivation {
         '';
         sourceProvenance = meta.sourceProvenance or [ sourceTypes.binaryNativeCode ];
         platforms = finalAttrs.passthru.supportedNixSystems;
-        broken = _mkMetaBroken finalAttrs;
-        badPlatforms = _mkMetaBadPlatforms finalAttrs;
+
+        problems = unionOfDisjoint (meta.problems or { }) (
+          mkBrokenAssertionProblems (
+            let
+              isSupportedRedistSystem = _redistSystemIsSupported hostRedistSystem finalAttrs.passthru.supportedRedistSystems;
+            in
+            {
+              srcNullHostRedistSystem = {
+                message = "src is null if and only if hostRedistSystem is unsupported";
+                assertion = (finalAttrs.src == null) == !isSupportedRedistSystem;
+              };
+              hostRedistSystemSupported = {
+                message = "hostRedistSystem (${hostRedistSystem}) is supported (${builtins.toJSON finalAttrs.passthru.supportedRedistSystems})";
+                assertion = isSupportedRedistSystem;
+              };
+              libBeforeStatic = {
+                message = "lib output precedes static output";
+                assertion =
+                  let
+                    libIndex = findFirstIndex (x: x == "lib") null finalAttrs.outputs;
+                    staticIndex = findFirstIndex (x: x == "static") null finalAttrs.outputs;
+                  in
+                  libIndex == null || staticIndex == null || libIndex < staticIndex;
+              };
+              outputNameVarFallbacks = {
+                # NOTE: We cannot (easily) check that all expected outputs have a corresponding outputNameVar attribute in
+                # finalAttrs because of the presence of attributes which use the "output" prefix but are not outputNameVars
+                # (e.g., outputChecks and outputName).
+                message = "outputNameVarFallbacks is a super set of expectedOutputs";
+                assertion =
+                  subtractLists (map mkOutputNameVar finalAttrs.passthru.expectedOutputs) (
+                    attrNames finalAttrs.passthru.outputNameVarFallbacks
+                  ) == [ ];
+              };
+              outputToPatterns = {
+                message = "outputToPatterns is a super set of expectedOutputs";
+                assertion =
+                  subtractLists finalAttrs.passthru.expectedOutputs (attrNames finalAttrs.passthru.outputToPatterns)
+                  == [ ];
+              };
+              propagatedBuildOutputs = {
+                message = "propagatedBuildOutputs is a subset of outputs";
+                assertion = subtractLists finalAttrs.outputs finalAttrs.propagatedBuildOutputs == [ ];
+              };
+            }
+            // lib.listToAttrs (
+              lib.imap0 (i: lib.nameValuePair "platformAssertions-${toString i}") platformAssertions
+            )
+            // lib.listToAttrs (
+              lib.imap0 (i: lib.nameValuePair "brokenAssertions-${toString i}") brokenAssertions
+            )
+          )
+        );
         downloadPage =
           meta.downloadPage
             or "https://developer.download.nvidia.com/compute/${finalAttrs.passthru.redistName}/redist/${finalAttrs.pname}";
