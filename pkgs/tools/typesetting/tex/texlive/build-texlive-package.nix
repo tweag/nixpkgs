@@ -57,6 +57,7 @@
   hasJar ? false,
   catalogue ? pname,
   extraNativeBuildInputs ? [ ],
+  isGenerated ? false,
   ...
 }@args:
 
@@ -90,6 +91,9 @@ let
   }
   // lib.optionalAttrs hasJar {
     sourceProvenance = [ lib.sourceTypes.binaryBytecode ];
+  }
+  // lib.optionalAttrs isGenerated {
+    isGenerated = true;
   };
 
   # if binfiles contains exactly one entry, use it as mainProgram, but allow overrides via args.mainProgram

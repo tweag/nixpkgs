@@ -393,6 +393,8 @@ let
       teamsPosition = any;
 
       identifiers = attrs;
+
+      isGenerated = bool;
     };
 
   checkMeta = config.checkMeta;

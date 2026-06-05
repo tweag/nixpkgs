@@ -41,6 +41,7 @@ let
           mainProgram = cmd;
           priority = 10;
           platforms = platforms.${stdenv.hostPlatform.parsed.kernel.name} or platforms.all;
+          isGenerated = true;
         };
         inherit (provider) version pname;
         passthru = {
@@ -268,6 +269,7 @@ let
     pname: paths:
     buildEnv {
       inherit paths pname version;
+      meta.isGenerated = true;
     };
 
   # Compatibility derivations

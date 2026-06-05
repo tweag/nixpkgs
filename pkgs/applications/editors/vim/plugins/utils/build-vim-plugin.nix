@@ -23,6 +23,7 @@
       ...
     }@attrs:
     let
+      pos = builtins.unsafeGetAttrPos "pname" attrs;
       drv = stdenv.mkDerivation (
         attrs
         // {
@@ -51,7 +52,10 @@
           meta = {
             platforms = lib.platforms.all;
           }
-          // meta;
+          // meta
+          // lib.optionalAttrs (pos.file == toString ../generated.nix || pos.file == toString ../cocPlugins.nix) {
+            isGenerated = true;
+          };
         }
       );
     in

@@ -36,6 +36,7 @@ lib.makeScope newScope (self: rec {
           unpackPhase = "tar xf $src";
 
           meta = {
+            isGenerated = true;
             license =
               let
                 stringToLicense =

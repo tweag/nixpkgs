@@ -65,6 +65,8 @@ let
         meta = {
           description = "Aspell dictionary for ${fullName}";
           platforms = lib.platforms.all;
+          # TODO: Not actually generated
+          isGenerated = true;
         }
         // (args.meta or { });
       }

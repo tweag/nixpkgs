@@ -226,6 +226,7 @@ let
       // {
         inherit mirrors pname;
         fixedHashes = fixedHashes."${pname}-${toString revision}${extraRevision}" or { };
+        isGenerated = true;
       }
       // lib.optionalAttrs (args ? deps) { deps = map (n: tl.${n} or bin.${n}) (args.deps or [ ]); }
     )

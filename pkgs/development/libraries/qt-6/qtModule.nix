@@ -64,7 +64,6 @@ stdenv.mkDerivation (
 
     dontWrapQtApps = args.dontWrapQtApps or true;
   }
-)
 // {
   meta =
 
@@ -88,3 +87,4 @@ stdenv.mkDerivation (
     }
     // (args.meta or { });
 }
+)

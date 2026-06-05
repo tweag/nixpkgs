@@ -87,14 +87,18 @@ let
       requires = parser.requires or [ ];
       dependencies = map (req: grammarToPlugin parsersWithQueries.${req}) requires;
     in
-    if dependencies != [ ] then
+    (if dependencies != [ ] then
       parser.overrideAttrs (old: {
         passthru = old.passthru or { } // {
           inherit dependencies;
         };
       })
     else
-      parser
+      parser).overrideAttrs (old: {
+        meta = old.meta or {} // {
+          isGenerated = true;
+        };
+      })
   ) parsersWithQueries;
 
   # add aliases so grammars from `tree-sitter` are overwritten in `withPlugins`

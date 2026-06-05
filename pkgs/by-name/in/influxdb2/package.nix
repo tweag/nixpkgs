@@ -13,4 +13,6 @@ buildEnv {
     influxdb2-server
     influxdb2-cli
   ];
+  # TODO: Not actually generated
+  meta.isGenerated = true;
 }

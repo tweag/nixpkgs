@@ -51,6 +51,7 @@ lib.makeScope newScope (self: {
           buildInputs = map (x: eggself.${x}) (lib.subtractLists invalidDependencies dependencies);
           meta.homepage = "https://wiki.call-cc.org/eggref/5/${pname}";
           meta.description = synopsis;
+          meta.isGenerated = true;
           meta.license =
             (
               lib.licenses

@@ -19,6 +19,7 @@
 stdenv.mkDerivation (
   {
     pname = "tree-sitter-${language}";
+    inherit (args) pos;
 
     inherit version src;
 

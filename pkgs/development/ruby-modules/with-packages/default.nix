@@ -35,6 +35,7 @@ let
             {
               inherit ruby;
               gemName = name;
+              meta.isGenerated = true;
             }
             // initialAttrs
           );
