@@ -4,6 +4,11 @@
   fetchFromGitHub,
   fetchpatch,
   cmake,
+  zlib,
+
+  withZlib ? false,
+  withUnixSockets ? false,
+  withWebSockets ? false,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -32,10 +37,13 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   strictDeps = true;
+  __structuredAttrs = true;
 
   nativeBuildInputs = [
     cmake
   ];
+
+  buildInputs = lib.optional withZlib zlib;
 
   # The existence of the "build" script causes `mkdir -p build` to fail:
   #   mkdir: cannot create directory 'build': File exists
@@ -60,12 +68,22 @@ stdenv.mkDerivation (finalAttrs: {
 
     # Workaround CMake 4 compat
     (lib.cmakeFeature "CMAKE_POLICY_VERSION_MINIMUM" "3.5")
-  ];
+
+    (lib.cmakeBool "CIVETWEB_ENABLE_WEBSOCKETS" withWebSockets)
+
+    (lib.cmakeBool "CIVETWEB_ENABLE_ZLIB" withZlib)
+  ]
+
+  # Support for listening for HTTP requests on a Unix domain socket.
+  ++ lib.optional withUnixSockets "-DCMAKE_C_FLAGS=-DUSE_X_DOM_SOCKET";
+  # NOTE Once 1.17 is released, we can use a CMake flag:
+  # (lib.cmakeBool "CIVETWEB_ENABLE_X_DOM_SOCKET" withUnixSockets)
 
   meta = {
     description = "Embedded C/C++ web server";
     mainProgram = "civetweb";
     homepage = "https://github.com/civetweb/civetweb";
     license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jlesquembre ];
   };
 })
