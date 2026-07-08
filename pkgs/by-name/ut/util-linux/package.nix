@@ -218,6 +218,38 @@ stdenv.mkDerivation (finalAttrs: {
 
     tests = {
       inherit (nixosTests) pam-lastlog util-linux;
+
+      withCheck = finalAttrs.finalPackage.overrideAttrs (_: {
+        doCheck = true;
+
+        preCheck = ''
+          patchShebangs tests
+
+          # enosys: replace /bin/false with the one from coreutils
+          sed -i "s@/bin/false@${lib.getExe' coreutils "false"}@" tests/helpers/test_enosys.c
+
+          # silence errors from trying to write to closed pipe
+          sed -i "s@| head -1@2>/dev/null | head -1@" tests/ts/findmnt/df-options
+
+          # skip tests that are incompatible with the sandbox environment
+          exclude=(
+            lsfd/column-ainodeclass
+            lsfd/column-type
+            lsfd/mkfds-netlink-protocol
+            lsfd/mkfds-tcp6
+            lsfd/mkfds-tcp
+            lsfd/mkfds-unix-dgram
+            lsfd/mkfds-unix-stream-requiring-sockdiag
+            lsfd/mkfds-socketpair
+            lsfd/option-inet
+            lsfd/mkfds-udp
+            lsfd/mkfds-udp6
+            lsblk/lsblk
+          )
+
+          sed -i "s|EXCLUDETESTS=|EXCLUDETESTS=' ''${exclude[*]}'|g" tests/run.sh
+        '';
+      });
     };
   }
   // lib.optionalAttrs (!isMinimal) {
