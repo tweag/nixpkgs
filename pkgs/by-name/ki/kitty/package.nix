@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  replaceVars,
   python3Packages,
   libunistring,
   harfbuzz,
@@ -50,21 +51,21 @@
 with python3Packages;
 buildPythonApplication rec {
   pname = "kitty";
-  version = "0.47.1";
+  version = "0.48.1";
   pyproject = false;
 
   src = fetchFromGitHub {
     owner = "kovidgoyal";
     repo = "kitty";
     tag = "v${version}";
-    hash = "sha256-/FOeJiC9SNE/k7SzXl5nmwdfKiFlKa0C0IuIph4cRxQ=";
+    hash = "sha256-h4dE99FET26iTgEFrmeXcFDw6DLl8dQjGep0NJ7jMzk=";
   };
 
   goModules =
     (buildGo126Module {
       pname = "kitty-go-modules";
       inherit src version;
-      vendorHash = "sha256-SuLcY8M+F9HijinaNr6jmsGlJ00o5LJN+Y04cfjyQ/c=";
+      vendorHash = "sha256-nxPca7xDgxQd8vXbGKGuKXmB5vu0d3me//m8AULJZ6o=";
     }).goModules;
 
   buildInputs = [
@@ -142,6 +143,9 @@ buildPythonApplication rec {
     # OSError: master_fd is in error condition
     ./disable-test_ssh_bootstrap_with_different_launchers.patch
 
+    (replaceVars ./libxkbcommon-runtime-path.patch {
+      libxkbcommon = "${lib.getLib libxkbcommon}/lib/libxkbcommon.so.0";
+    })
   ];
 
   hardeningDisable = [
@@ -152,6 +156,7 @@ buildPythonApplication rec {
   env = {
     CGO_ENABLED = 0;
     GOFLAGS = "-trimpath";
+    GOTOOLCHAIN = "local";
   };
 
   configurePhase = ''

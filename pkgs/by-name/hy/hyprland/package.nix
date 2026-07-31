@@ -1,6 +1,6 @@
 {
   lib,
-  gcc15Stdenv,
+  gcc16Stdenv,
   stdenvAdapters,
   fetchFromGitHub,
   pkg-config,
@@ -22,6 +22,7 @@
   lcms2,
   libGL,
   libdrm,
+  libei,
   libexecinfo,
   libgbm,
   libinput,
@@ -34,6 +35,7 @@
   pkgconf,
   python3,
   re2,
+  readline,
   systemd,
   tomlplusplus,
   uwsm,
@@ -48,7 +50,7 @@
   xwayland,
   debug ? false,
   enableXWayland ? true,
-  withSystemd ? lib.meta.availableOn gcc15Stdenv.hostPlatform systemd,
+  withSystemd ? lib.meta.availableOn gcc16Stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
 }:
 let
@@ -75,22 +77,22 @@ let
   # which would be controlled by the `debug` flag
   # Condition on darwin to avoid breaking eval for darwin in CI,
   # even though darwin is not supported anyway.
-  adapters = lib.optionals (!gcc15Stdenv.targetPlatform.isDarwin) [
+  adapters = lib.optionals (!gcc16Stdenv.targetPlatform.isDarwin) [
     stdenvAdapters.useMoldLinker
   ];
 
-  customStdenv = foldl' (acc: adapter: adapter acc) gcc15Stdenv adapters;
+  customStdenv = foldl' (acc: adapter: adapter acc) gcc16Stdenv adapters;
 in
 customStdenv.mkDerivation (finalAttrs: {
   pname = "hyprland" + optionalString debug "-debug";
-  version = "0.55.3";
+  version = "0.56.1";
 
   src = fetchFromGitHub {
     owner = "hyprwm";
     repo = "hyprland";
     fetchSubmodules = true;
     tag = "v${finalAttrs.version}";
-    hash = "sha256-g3kzroSoipkMXv5wJWVYQDL+gI1qRJ7UhOrUzyTk9Zs=";
+    hash = "sha256-u3DU6wmJ2PZk8kAOnx64MTlVxp/hZH+oUtXouj1E3+0=";
   };
 
   postPatch = ''
@@ -156,6 +158,7 @@ customStdenv.mkDerivation (finalAttrs: {
       lcms2
       libGL
       libdrm
+      libei
       libgbm
       libinput
       libuuid
@@ -166,6 +169,7 @@ customStdenv.mkDerivation (finalAttrs: {
       pango
       pciutils
       re2
+      readline
       tomlplusplus
       wayland
       wayland-protocols
@@ -185,6 +189,7 @@ customStdenv.mkDerivation (finalAttrs: {
   cmakeBuildType = if debug then "Debug" else "RelWithDebInfo";
 
   dontStrip = debug;
+  separateDebugInfo = !debug;
   strictDeps = true;
 
   cmakeFlags = mapAttrsToList cmakeBool {

@@ -17,14 +17,14 @@
 
 buildPythonPackage (finalAttrs: {
   pname = "pyportainer";
-  version = "1.0.40";
+  version = "1.0.42";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "erwindouna";
     repo = "pyportainer";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-pwyGy2pVwY4vfjEpEYLK+9kh+HxLjfQE+JfvPzsLt5k=";
+    hash = "sha256-Mnn9cpTei7dJCPomON0XskvNDSEb+XP9tMihoN7vS8E=";
   };
 
   build-system = [ hatchling ];
@@ -46,6 +46,8 @@ buildPythonPackage (finalAttrs: {
     pytestCheckHook
     syrupy
   ];
+
+  __darwinAllowLocalNetworking = true;
 
   meta = {
     changelog = "https://github.com/erwindouna/pyportainer/releases/tag/${finalAttrs.src.tag}";

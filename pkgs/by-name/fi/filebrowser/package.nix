@@ -1,4 +1,5 @@
 {
+  stdenv,
   lib,
   fetchFromGitHub,
   buildGoModule,
@@ -8,18 +9,19 @@
   pnpmBuildHook,
   nodejs-slim,
   pnpm_10,
+  installShellFiles,
   nix-update-script,
   nixosTests,
 }:
 
 let
-  version = "2.63.5";
+  version = "2.63.20";
 
   src = fetchFromGitHub {
     owner = "filebrowser";
     repo = "filebrowser";
     tag = "v${version}";
-    hash = "sha256-/X/TztbZDC1hkRL97jkm6Ak8QmKFDMycekLl6NVPS0k=";
+    hash = "sha256-TyCd3AAfc/qMSG1mYZ9OF5kiHTrSRuJ8EzBM5fNzqnA=";
   };
 
   frontend = stdenvNoCC.mkDerivation (finalAttrs: {
@@ -62,7 +64,16 @@ buildGoModule {
   pname = "filebrowser";
   inherit version src;
 
-  vendorHash = "sha256-ofeQkbvBfCpu2g1CLAwUZAZISyAOz+0smEZRx/koj/8=";
+  vendorHash = "sha256-BXw+fURCh1qNlwWo49aXIpSM339bV3Gwn9Ov8HLEVF0=";
+
+  nativeBuildInputs = [ installShellFiles ];
+
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd filebrowser \
+      --bash <($out/bin/filebrowser completion bash) \
+      --fish <($out/bin/filebrowser completion fish) \
+      --zsh  <($out/bin/filebrowser completion zsh )
+  '';
 
   excludedPackages = [ "tools" ];
 

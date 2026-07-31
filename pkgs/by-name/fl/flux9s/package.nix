@@ -1,5 +1,5 @@
 {
-  fetchCrate,
+  fetchFromGitHub,
   lib,
   openssl,
   pkg-config,
@@ -9,14 +9,16 @@
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "flux9s";
-  version = "0.9.0";
+  version = "0.12.0";
 
-  src = fetchCrate {
-    inherit (finalAttrs) pname version;
-    hash = "sha256-cto3Fu2UW8+Pq6OK5miw+cAwzqiotTGWPD0Yyckh1/M=";
+  src = fetchFromGitHub {
+    owner = "dgunzy";
+    repo = "flux9s";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-kwUoA5NTjJjCI3aUgpFOcDpRZbDEPCTzzsk7TxVn6K4=";
   };
 
-  cargoHash = "sha256-uOa/qWBtTQf7jJWJhFJBmYWQ5mU/3P/YuACbnVbHdJc=";
+  cargoHash = "sha256-5UOaIbaAlBufB4BJ+ZX82xaKTQ4qDDRZWaweM8d2AOY=";
 
   nativeBuildInputs = [ pkg-config ];
 

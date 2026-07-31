@@ -5,7 +5,7 @@
   copyDesktopItems,
   makeDesktopItem,
   libxkbcommon,
-  makeWrapper,
+  makeBinaryWrapper,
   nix-update-script,
   openssl,
   pkg-config,
@@ -21,20 +21,20 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "halloy";
-  version = "2026.7.1";
+  version = "2026.7.2";
 
   src = fetchFromGitHub {
     owner = "squidowl";
     repo = "halloy";
     tag = finalAttrs.version;
-    hash = "sha256-AFDx4gmYWUMcvpJi+/2xd0s4gAygwss2XrmCFsd6uKs=";
+    hash = "sha256-+qFHwlwRxVN4W9DG+gY5N6um+JARD+3EiLlsD7R9Tpc=";
   };
 
-  cargoHash = "sha256-hrYWF5WNhLqKMFJJlir7tumxNZqgGm+gK+RI1iDPatM=";
+  cargoHash = "sha256-/nFtOJXpusIlc7orGv013qzad8fdfQr32c8DAlccHIA=";
 
   nativeBuildInputs = [
     copyDesktopItems
-    makeWrapper
+    makeBinaryWrapper
     pkg-config
   ];
 
@@ -105,7 +105,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
       --replace-fail "{{ VERSION }}" "${finalAttrs.version}" \
       --replace-fail "{{ BUILD }}" "${finalAttrs.version}-nixpkgs"
 
-    makeWrapper "$out/bin/halloy" "$APP_DIR/MacOS/halloy"
+    makeBinaryWrapper "$out/bin/halloy" "$APP_DIR/MacOS/halloy"
   '';
 
   passthru.updateScript = nix-update-script { };

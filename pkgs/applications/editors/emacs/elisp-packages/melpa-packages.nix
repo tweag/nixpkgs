@@ -1536,6 +1536,8 @@ let
 
           org-change = ignoreCompilationError super.org-change; # elisp error
 
+          org-cite-overlay = ignoreCompilationError super.org-cite-overlay; # native-ice
+
           org-edit-latex = mkHome super.org-edit-latex;
 
           # https://github.com/GuiltyDolphin/org-evil/issues/24
@@ -1700,6 +1702,9 @@ let
           shadchen = ignoreCompilationError super.shadchen; # elisp error
 
           shampoo = ignoreCompilationError super.shampoo; # elisp error
+
+          # missing optional dependencies
+          shexc-ts-mode = addPackageRequires super.shexc-ts-mode [ self.yaml ];
 
           # missing optional dependencies and one of them (mew) is not on any ELPA
           shimbun = ignoreCompilationError (

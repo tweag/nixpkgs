@@ -10,7 +10,7 @@
 
 let
   pname = "jetbrains-toolbox";
-  version = "3.4.3.81140";
+  version = "3.6.2.85969";
 
   updateScript = ./update.sh;
 
@@ -27,7 +27,6 @@ let
       "aarch64-linux"
       "aarch64-darwin"
       "x86_64-linux"
-      "x86_64-darwin"
     ];
     mainProgram = "jetbrains-toolbox";
   };
@@ -58,10 +57,9 @@ let
         aarch64 = "-arm64";
       };
       hash = selectSystem {
-        x86_64-linux = "sha256-cDquMMb2gcRv6juEo2Ty4KgoKG5zBYtq+0mppnq4vyU=";
-        aarch64-linux = "sha256-jF9Evg6IZVEz6Nsl8XYb0nIyaO/yqdEEYOs+k2vZ8jo=";
-        x86_64-darwin = "sha256-AiaER3tqV1GXL3E1ImWdIjWt/iElt+kxNTHz7bpgeQw=";
-        aarch64-darwin = "sha256-UIh7HRx+ofdnxA8Bv6kI2L0pFmWW0UMApexffe+9bY0=";
+        x86_64-linux = "sha256-2XvsZ5WrdmDGTigKWJCUJB2VkHj+Z3M8QClp6YoIIRw=";
+        aarch64-linux = "sha256-/8j7vJGTCvj57I1kqUCyBSDoJA8Tr0MUaomhb0Um7vA=";
+        aarch64-darwin = "sha256-esf/AfRDGoWV05KWb7CfJBRQvkcs3bG5/IldcTuNZOA=";
       };
     in
     selectKernel {
@@ -97,7 +95,7 @@ selectKernel {
 
       extraInstallCommands = ''
         install -Dm0644 ${src}/bin/jetbrains-toolbox.desktop -t $out/share/applications
-        install -Dm0644 ${src}/bin/toolbox-tray-color.png $out/share/pixmaps/jetbrains-toolbox.png
+        install -Dm0644 ${src}/bin/toolbox-tray-color.png $out/share/icons/hicolor/32x32/apps/jetbrains-toolbox.png
       '';
     };
 

@@ -11,16 +11,16 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "worktrunk";
-  version = "0.53.0";
+  version = "0.68.0";
 
   src = fetchFromGitHub {
     owner = "max-sixty";
     repo = "worktrunk";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-1qWVELd9+XINjnzNNKeeCR9CxX/0DJVV6TS2cI0KhP4=";
+    hash = "sha256-4mxWRNNrpM5Fo49Xm8ypzBS15Y8kPPFd1iPod1RwxjA=";
   };
 
-  cargoHash = "sha256-sT9zOGhvsV3QKfRA2wtP4OnWitjxhL0B4guMBdkciE8=";
+  cargoHash = "sha256-ZEv3peP/mjDDWYw4LNuhIt8I806W/yfUKtEA7e3t7rA=";
 
   cargoBuildFlags = [ "--package=worktrunk" ];
 
@@ -39,7 +39,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
     installShellCompletion --cmd wt \
       --bash <($out/bin/wt config shell completions bash) \
       --fish <($out/bin/wt config shell completions fish) \
-      --zsh  <($out/bin/wt config shell completions zsh)
+      --nushell <($out/bin/wt config shell completions nu) \
+      --zsh <($out/bin/wt config shell completions zsh)
+
+    # -L dereferences symlinks (e.g. skills/worktrunk/reference/README.md → repo
+    # root), so no dangling symlinks end up in $out.
+    cp -RL ${finalAttrs.src}/skills $out/
   '';
 
   nativeCheckInputs = [ gitMinimal ];
@@ -49,6 +54,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     "--skip=output::commit_generation::tests::test_command_exists_known_command"
     # Integration tests use insta snapshots with environment-specific paths
     "--skip=integration_tests::"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # These tests probe the live process table — on macOS that means libproc
+    # (`proc_listallpids` / `proc_pidinfo`). Inside the Nix darwin sandbox,
+    # those calls are denied. The build process can't even read its own pid
+    # from the table, so two tests panic:
+    "--skip=shell::utils::tests::test_process_name_and_ppid_self"
+    "--skip=shell::utils::tests::test_probe_reports_invoked_name_for_sh"
   ];
 
   doInstallCheck = true;
@@ -73,6 +86,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     maintainers = with lib.maintainers; [
       siriobalmelli
       DuskyElf
+      yzx9
     ];
   };
 })

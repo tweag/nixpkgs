@@ -27,13 +27,18 @@
     #
     # Ensure you also check ../mattermostLatest/package.nix.
     regex = "^v(11\\.7\\.[0-9]+)$";
-    version = "11.7.2";
-    srcHash = "sha256-qqBqV55Qq2zZOKIZmRB0MyCjFkHDmfvQjmuMn2cP4hY=";
+    version = "11.7.7";
+    srcHash = "sha256-dV+U+2yYX4IrM/EMaBAMwhW9WJh976WGDWFNOqnkTE8=";
     vendorHash = "sha256-XaXqQN20c3DhW2/L0zhTA8dLeRp4MyBxUKpiMVwp/7s=";
-    npmDepsHash = "sha256-37nkbIMuCI0ZSFc+TXky+kkrbLJNNzX/xBXGZjp4r7o=";
+    npmDepsHash = "sha256-8ZEe2TM2bevzdn04YIcVICWFSaa8HZTVS4gKn6aFcqM=";
   },
   ...
 }:
+
+assert lib.warnIf (latestVersionInfo != null && (removeUserLimit || removeFreeBadge)) ''
+  The user limit and free badge patches are not tested with this Mattermost version
+  (${latestVersionInfo.version}).
+'' true;
 
 let
   /*
@@ -265,7 +270,7 @@ buildMattermost rec {
       buildPhase = ''
         runHook preBuild
 
-        for ws in platform/{types,client,components,shared} channels; do
+        for ws in platform/{types,client,shared,components} channels; do
           if [ -d "$ws" ]; then
             npm run build --workspace="$ws"
           fi

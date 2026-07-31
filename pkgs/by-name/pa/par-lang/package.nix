@@ -19,16 +19,16 @@
 
 rustPlatform.buildRustPackage {
   pname = "par-lang";
-  version = "0-unstable-2026-06-01";
+  version = "0-unstable-2026-07-24";
 
   src = fetchFromGitHub {
     owner = "par-team";
     repo = "par-lang";
-    rev = "b4cb6f58a696d0c159df241c302f6dac220a0421";
-    hash = "sha256-FO3XhIjead6Om/1wMWTFq6cx3pGps8JKs1/7MN1fllo=";
+    rev = "9f667875a46b9cfe43d44fa7dcf41ff34ae74e11";
+    hash = "sha256-IF9VpwfRFCjTx+CkXyHOGIC+rilHWvRhQ0/xH8rgMwE=";
   };
 
-  cargoHash = "sha256-IoZbNvCzeuOMVjfbTUGr+qs73IvFmPTK9rn6x40SYBQ=";
+  cargoHash = "sha256-8lG+cKN3/W+LYWhmOfDwGiq6u3nlLJaD5uNABaY0zRY=";
 
   nativeBuildInputs = [
     pkg-config

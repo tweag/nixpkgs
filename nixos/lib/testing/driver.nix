@@ -14,13 +14,12 @@ let
 
   inherit (config) sshBackdoor;
 
-  inherit (hostPkgs.stdenv.hostPlatform) isLinux;
+  inherit (hostPkgs.stdenv.hostPlatform) isLinux isAarch64;
 
   # Reifies and correctly wraps the python test driver for
   # the respective qemu version and with or without ocr support
   testDriver = config.pythonTestDriverPackage.override {
     inherit (config) enableOCR extraPythonPackages;
-    qemu_pkg = config.qemu.package;
     enableNspawn = config.containers != { };
   };
 
@@ -256,6 +255,10 @@ in
         #
         # If needed, this can still be turned off.
         virtualisation.qemu.enableSharedMemory = lib.mkDefault isLinux;
+        # Needed for screenshots to work (in e.g `nixosTests.login`)
+        virtualisation.qemu.options = lib.optionals (isLinux && isAarch64) [
+          "-device virtio-gpu-pci"
+        ];
 
         assertions = [
           {

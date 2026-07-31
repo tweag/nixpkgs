@@ -3,16 +3,19 @@
   buildPythonPackage,
   fetchFromGitHub,
   replaceVars,
+  pythonOlder,
   hatch-vcs,
   hatchling,
   python-dateutil,
+  typing-extensions,
   tzdata,
   hypothesis,
+  pyprojectVersionPatchHook,
   pytestCheckHook,
 }:
 
 buildPythonPackage rec {
-  version = "7.1.2";
+  version = "7.2.0";
   pname = "icalendar";
   pyproject = true;
 
@@ -20,13 +23,11 @@ buildPythonPackage rec {
     owner = "collective";
     repo = "icalendar";
     tag = "v${version}";
-    hash = "sha256-y6t27/l2jnNr6/VlGuXlE2BcNDPOd0wscyCMpRY4+MM=";
+    hash = "sha256-0NKNbWigZ3BOfKBM8Q+XrOdoFBOF5Lu4XujJcYCMuMw=";
   };
 
-  patches = [
-    (replaceVars ./no-dynamic-version.patch {
-      inherit version;
-    })
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
   ];
 
   build-system = [
@@ -37,6 +38,10 @@ buildPythonPackage rec {
   dependencies = [
     python-dateutil
     tzdata
+  ]
+  ++ lib.optionals (pythonOlder "3.13") [
+    # typing.TypeIs arrived in Python 3.13.
+    typing-extensions
   ];
 
   nativeCheckInputs = [

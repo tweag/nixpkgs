@@ -32,6 +32,7 @@
   libslirp,
   libcbor,
   darwin,
+  apple-sdk_15,
   guestAgentSupport ?
     (with stdenv.hostPlatform; isLinux || isNetBSD || isOpenBSD || isSunOS || isWindows) && !minimal,
   numaSupport ? stdenv.hostPlatform.isLinux && !stdenv.hostPlatform.isAarch32 && !minimal,
@@ -98,6 +99,8 @@
   capstone,
   valgrindSupport ? false,
   valgrind-light,
+  brlttySupport ? !minimal && !stdenv.hostPlatform.isDarwin,
+  brltty,
   pluginsSupport ? !stdenv.hostPlatform.isStatic,
   enableDocs ? !minimal || toolsOnly,
   enableTools ? !minimal || toolsOnly,
@@ -140,11 +143,11 @@ stdenv.mkDerivation (finalAttrs: {
     + lib.optionalString nixosTestRunner "-for-vm-tests"
     + lib.optionalString toolsOnly "-utils"
     + lib.optionalString userOnly "-user";
-  version = "11.0.0";
+  version = "11.0.2";
 
   src = fetchurl {
     url = "https://download.qemu.org/qemu-${finalAttrs.version}.tar.xz";
-    hash = "sha256-wEyjYBJlPzLRHGdNNwz1KnEOfT8Ywti2PkkyBSpIVNY=";
+    hash = "sha256-N0X26oji6H/g3IOLKx1OCncL9I4BodWhhoQqH/92zPU=";
   };
 
   depsBuildBuild = [
@@ -251,7 +254,9 @@ stdenv.mkDerivation (finalAttrs: {
   ++ lib.optionals canokeySupport [ canokey-qemu ]
   ++ lib.optionals u2fEmuSupport [ libu2f-emu ]
   ++ lib.optionals capstoneSupport [ capstone ]
-  ++ lib.optionals valgrindSupport [ valgrind-light ];
+  ++ lib.optionals valgrindSupport [ valgrind-light ]
+  ++ lib.optionals brlttySupport [ brltty ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ apple-sdk_15 ];
 
   dontUseMesonConfigure = true; # meson's configurePhase isn't compatible with qemu build
   dontAddStaticConfigureFlags = true;
@@ -336,6 +341,7 @@ stdenv.mkDerivation (finalAttrs: {
   ++ lib.optional canokeySupport "--enable-canokey"
   ++ lib.optional u2fEmuSupport "--enable-u2f"
   ++ lib.optional capstoneSupport "--enable-capstone"
+  ++ lib.optional brlttySupport "--enable-brlapi"
   ++ lib.optional (!pluginsSupport) "--disable-plugins"
   ++ lib.optional (!enableBlobs) "--disable-install-blobs"
   ++ lib.optional userOnly "--disable-system"

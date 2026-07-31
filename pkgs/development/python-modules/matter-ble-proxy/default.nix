@@ -13,7 +13,7 @@
 
 buildPythonPackage (finalAttrs: {
   pname = "matter-ble-proxy";
-  version = "0.8.0";
+  version = "1.2.7";
   pyproject = true;
 
   disabled = pythonOlder "3.12";
@@ -22,7 +22,7 @@ buildPythonPackage (finalAttrs: {
     owner = "matter-js";
     repo = "matterjs-server";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-AjCfPovhYKUeU4Xrsh6uL0pPG+ja0n+efFTbwre83m4=";
+    hash = "sha256-VZgC+tBb/xCtX1wNOG9r30vCzoBVERAVgrhRQTAsfI8=";
   };
 
   sourceRoot = "${finalAttrs.src.name}/python_ble_proxy";

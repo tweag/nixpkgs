@@ -14,16 +14,19 @@
   typing-inspection,
 }:
 
+# Update together with pydantic-ai-slim
+# nixpkgs-update: no auto update
+
 buildPythonPackage (finalAttrs: {
   pname = "pydantic-graph";
-  version = "1.106.0";
+  version = "2.14.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pydantic";
     repo = "pydantic-ai";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-D7fCBhGJjcBeIoddIFobfZBUocgQW2R0vhTGdvd/Dew=";
+    hash = "sha256-pqgNRwe3PeBUtMX9evYze6oKUeQJwEO5x9/XS8f9ago=";
   };
 
   sourceRoot = "${finalAttrs.src.name}/pydantic_graph";
@@ -47,6 +50,7 @@ buildPythonPackage (finalAttrs: {
   doCheck = false; # no tests
 
   meta = {
+    changelog = "https://github.com/pydantic/pydantic-ai/releases/tag/${finalAttrs.src.tag}";
     description = "GenAI Agent Framework, the Pydantic way";
     homepage = "https://github.com/pydantic/pydantic-ai";
     license = lib.licenses.mit;
