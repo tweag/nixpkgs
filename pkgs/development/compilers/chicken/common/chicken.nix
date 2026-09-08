@@ -79,6 +79,11 @@ stdenv.mkDerivation (finalAttrs: {
     darwin.autoSignDarwinBinariesHook
   ];
 
+  # Neither release's test suite survives the Darwin sandbox, for a different
+  # reason each: CHICKEN 5's runtests.sh drives the compiler through
+  # /usr/bin/env, which the sandbox denies, and CHICKEN 6's csc tests run
+  # binaries whose install name install_name_tool has already rewritten to
+  # $out/lib/libchicken.dylib, which does not exist until the install phase.
   doCheck = !stdenv.hostPlatform.isDarwin;
 
   # The generic check phase probes for a target with a bare `make check`, which
