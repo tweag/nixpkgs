@@ -5,6 +5,7 @@
   fetchpatch,
   cmake,
   zlib,
+  versionCheckHook,
 
   withZlib ? false,
   withUnixSockets ? false,
@@ -38,6 +39,10 @@ stdenv.mkDerivation (finalAttrs: {
 
   strictDeps = true;
   __structuredAttrs = true;
+
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  versionCheckProgramArg = "-I";
 
   nativeBuildInputs = [
     cmake
