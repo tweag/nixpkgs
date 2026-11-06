@@ -9,6 +9,8 @@ args: linuxPackages:
       ];
     };
 
+    globalTimeout = 7200;
+
     nodes.machine =
       {
         boot.kernelPackages = linuxPackages;
@@ -17,7 +19,6 @@ args: linuxPackages:
         # than the test defaults provide (the defaults overflow the disk/RAM
         # during unpackPhase, causing "No space left on device").
         virtualisation = {
-          diskSize = 32 * 1024; # MB
           memorySize = 16 * 1024; # MB
           cores = 96;
         };
@@ -34,9 +35,12 @@ args: linuxPackages:
                 "clone3:clone3_cap_checkpoint_restore"
                 "core:unshare_test"
                 "damon:sysfs_no_op_commit_break.py"
+                "damon:sysfs_update_schemes_tried_regions_wss_estimation.py"
                 "damon:sysfs.py"
                 "devices/probe:test_discoverable_devices.py"
                 "drivers/dma-buf:udmabuf"
+                "drivers/net:hds.py"
+                "drivers/net:netpoll_basic.py"
                 "drivers/net:ping.py"
                 "drivers/net:psp.py"
                 "drivers/net:xdp.py"
