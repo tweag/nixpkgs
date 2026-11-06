@@ -25,6 +25,7 @@
   rustPlatform,
   makeSetupHook,
   xz,
+  callPackage,
 }:
 
 let
@@ -173,7 +174,7 @@ lib.makeOverridable (
     ];
   in
 
-  stdenv.mkDerivation {
+  stdenv.mkDerivation (finalAttrs: {
     inherit pname version src;
 
     __structuredAttrs = true;
@@ -527,6 +528,10 @@ lib.makeOverridable (
       baseVersion = lib.head (lib.splitString "-rc" version);
       kernelOlder = lib.versionOlder baseVersion;
       kernelAtLeast = lib.versionAtLeast baseVersion;
+      selftests = callPackage ./selftests.nix {
+        inherit src version isModular;
+        kernelPackage = finalAttrs.finalPackage;
+      };
     };
 
     # Some image types need special install targets
@@ -588,5 +593,5 @@ lib.makeOverridable (
       };
     }
     // extraMeta;
-  }
+  })
 )
