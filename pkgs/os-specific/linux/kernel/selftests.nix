@@ -13,7 +13,6 @@
   numactl,
   libcap_ng,
   fuse,
-  makeWrapper,
   alsa-lib,
   python3,
   libmnl,
@@ -28,23 +27,6 @@
   openssl,
   rsync,
   buildPackages,
-  jq,
-  ethtool,
-  linuxPackages,
-  netsniff-ng,
-  smcroute,
-  tcpdump,
-  netperf,
-  tshark,
-  ndisc6,
-  iproute2,
-  nmap,
-  nftables,
-  packetdrill,
-  dropwatch,
-  socat,
-  iperf3,
-  pesign,
   hid-tools,
   ...
 }:
@@ -53,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   name = "linux-${version}-kselftests";
 
   inherit src;
-  
+
   __structuredAttrs = true;
   strictDeps = true;
 
@@ -92,12 +74,9 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   nativeBuildInputs = [
-    makeWrapper
     pkg-config
     rsync
     llvmPackages.llvm
-    jq
-    ethtool
     (python3.withPackages (ps: [
       ps.pyyaml
       ps.jsonschema
@@ -105,21 +84,6 @@ stdenv.mkDerivation (finalAttrs: {
       ps.pytest-tap
       hid-tools
     ]))
-    linuxPackages.cpupower
-    netsniff-ng
-    smcroute
-    tcpdump
-    netperf
-    tshark
-    ndisc6
-    iproute2
-    nmap
-    nftables
-    packetdrill
-    dropwatch
-    socat
-    iperf3
-    pesign
   ];
 
   env = {
